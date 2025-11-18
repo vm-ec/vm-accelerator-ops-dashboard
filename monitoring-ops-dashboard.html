@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueMomentum - Functional Health Check Dashboard</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #005a9e;
+            color: white;
+            padding: 18px;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            padding: 30px;
+            max-width: 1300px;
+            margin: auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 22px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform .2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+        }
+
+        .title {
+            font-size: 21px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .status {
+            margin-top: 14px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .up {
+            color: #0a8a46;
+        }
+
+        .down {
+            color: #d93232;
+        }
+
+        .timestamp {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 18px;
+            color: #777;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">ValueMomentum - Functional Health Check Dashboard</div>
+
+    <div class="container">
+        <div class="grid">
+
+            <div class="card" id="Policysubmission">
+                <div class="title">Policy Submission</div>
+                <div class="status">Checking...</div>
+                <div class="timestamp"></div>
+            </div>
+
+            <div class="card" id="Policymanager">
+                <div class="title">Policy Manager</div>
+                <div class="status">Checking...</div>
+                <div class="timestamp"></div>
+            </div>
+
+            <div class="card" id="Calims">
+                <div class="title">Claims</div>
+                <div class="status">Checking...</div>
+                <div class="timestamp"></div>
+            </div>
+
+            <div class="card" id="Claimsreview">
+                <div class="title">Claims Review</div>
+                <div class="status">Checking...</div>
+                <div class="timestamp"></div>
+            </div>
+
+            <div class="card" id="Claimsfraud">
+                <div class="title">Claims Fraud Check</div>
+                <div class="status">Checking...</div>
+                <div class="timestamp"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="footer">Auto refreshing every 10 seconds • Powered by ValueMomentum</div>
+
+    <script>
+        async function checkServer(id, url) {
+            const card = document.getElementById(id);
+            const statusEl = card.querySelector(".status");
+            const tsEl = card.querySelector(".timestamp");
+
+            const start = Date.now();
+
+            try {
+                const response = await fetch(url, { method: "GET" });
+                const now = new Date().toLocaleTimeString();
+                const timeTaken = Date.now() - start;
+
+                if (response.ok) {
+                    statusEl.innerHTML = `Status: <span class="up">UP</span> • ${timeTaken} ms`;
+                } else {
+                    statusEl.innerHTML = `Status: <span class="down">DOWN</span>`;
+                }
+
+                tsEl.textContent = `Last checked: ${now}`;
+            } catch (err) {
+                statusEl.innerHTML = `Status: <span class="down">DOWN</span>`;
+                tsEl.textContent = `Last checked: Error`;
+            }
+        }
+
+        function checkAll() {
+            checkServer("Policysubmission", "https://vm-service-policy-submission.onrender.com/policysubmission/health");
+            checkServer("Policymanager", "https://vm-service-policy-manager-1.onrender.com/policymanager/health");
+            checkServer("Calims", "https://vm-service-claims.onrender.com/claims/health");
+            checkServer("Claimsreview", "https://vm-service-claims-review.onrender.com/claimsreview/health");
+            checkServer("Claimsfraud", "https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health");
+        }
+
+        checkAll();
+        setInterval(checkAll, 10000);
+    </script>
+
+</body>
+</html>
