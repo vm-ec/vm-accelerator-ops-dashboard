@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ValueMomentum - Operational Health Dashboard (Tile View)</title>
+<style>
+    :root{
+        --bg:#f6f8fa;
+        --card:#ffffff;
+        --muted:#6b7280;
+        --accent:#0f6ebf;
+        --success:#16a34a;
+        --warning:#eab308;
+        --danger:#dc2626;
+        --shadow:0 6px 18px rgba(15,30,40,0.06);
+        --radius:10px;
+        font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+    html,body{
+        height:100%;
+        margin:0;
+        background:var(--bg);
+        color:#111827;
+    }
+
+    .topbar{
+        background:linear-gradient(90deg,#0f6ebf 0%,#0b57a1 100%);
+        color:#fff;
+        padding:16px 20px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        box-shadow:0 6px 18px rgba(11,87,161,0.18);
+    }
+    .brand{
+        font-weight:700;
+        font-size:18px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+    }
+    .brand svg{width:32px;height:32px;flex:0 0 32px;}
+    .top-actions{
+        display:flex;
+        gap:12px;
+        align-items:center;
+        font-size:13px;
+    }
+    .top-actions strong{font-weight:600;}
+
+    .layout{
+        max-width:1300px;
+        margin:20px auto 40px;
+        padding:0 16px;
+    }
+
+    .meta{
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+        align-items:center;
+        margin-bottom:16px;
+    }
+    .pill{
+        background:var(--card);
+        padding:6px 10px;
+        border-radius:999px;
+        box-shadow:var(--shadow);
+        font-size:13px;
+        color:var(--muted);
+        display:flex;
+        align-items:center;
+        gap:4px;
+    }
+    .meta-right{
+        margin-left:auto;
+        display:flex;
+        gap:10px;
+        align-items:center;
+        font-size:13px;
+        color:var(--muted);
+    }
+
+    /* TILE GRID (10x10) */
+    .tile-wrapper-card{
+        background:var(--card);
+        border-radius:14px;
+        box-shadow:var(--shadow);
+        padding:14px;
+    }
+    .tile-grid{
+        display:grid;
+        grid-template-columns:repeat(10,minmax(0,1fr));
+        gap:6px;
+    }
+    @media (max-width:900px){
+        .tile-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+    }
+    @media (max-width:600px){
+        .tile-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+    }
+
+    .tile{
+        border-radius:8px;
+        border:1px solid #e5e7eb;
+        background:var(--card);
+        padding:6px 8px;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        min-height:70px;
+        box-shadow:0 1px 3px rgba(15,23,42,0.04);
+        transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease, border-color .12s ease;
+        cursor:pointer;
+    }
+    .tile:hover{
+        transform:translateY(-2px);
+        box-shadow:0 8px 20px rgba(15,23,42,0.08);
+    }
+
+    .tile.up{
+        background:#dcfce7;
+        border-color:#22c55e;
+    }
+    .tile.degraded{
+        background:#fef9c3;
+        border-color:#eab308;
+    }
+    .tile.down{
+        background:#fee2e2;
+        border-color:#ef4444;
+    }
+
+    .tile-top{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:4px;
+    }
+    .tile-name{
+        font-size:11px;
+        font-weight:600;
+        color:#0f172a;
+        line-height:1.2;
+    }
+    .tile-id{
+        font-size:10px;
+        color:var(--muted);
+        text-transform:uppercase;
+        letter-spacing:0.04em;
+        white-space:nowrap;
+    }
+
+    .tile-bottom{
+        display:flex;
+        flex-direction:column;
+        margin-top:4px;
+        gap:2px;
+        font-size:10px;
+    }
+    .tile-status-text{
+        font-weight:600;
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+    }
+    .status-dot{
+        width:8px;
+        height:8px;
+        border-radius:999px;
+        background:#9ca3af;
+    }
+    .tile.up .status-dot{background:var(--success);}
+    .tile.degraded .status-dot{background:var(--warning);}
+    .tile.down .status-dot{background:var(--danger);}
+
+    .tile-meta{
+        color:var(--muted);
+        font-size:10px;
+    }
+
+    .legend{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        font-size:11px;
+        margin-bottom:10px;
+        color:var(--muted);
+    }
+    .legend-item{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        padding:4px 8px;
+        border-radius:999px;
+        background:#f3f4f6;
+    }
+    .legend-swatch{
+        width:10px;
+        height:10px;
+        border-radius:999px;
+    }
+    .legend-swatch.ok{background:#22c55e;}
+    .legend-swatch.warn{background:#eab308;}
+    .legend-swatch.err{background:#ef4444;}
+
+    .footer{
+        margin-top:16px;
+        font-size:12px;
+        text-align:center;
+        color:var(--muted);
+    }
+</style>
+</head>
+<body>
+<div class="topbar">
+    <div class="brand">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="10" fill="#0f6ebf"/>
+            <path d="M12 32L24 16L36 32H12Z" fill="white"/>
+        </svg>
+        ValueMomentum — Operational Health Dashboard
+    </div>
+    <div class="top-actions">
+        <div>Auto-refresh: <strong id="refresh-interval-label">10s</strong></div>
+        <div>Last checked: <strong id="last-checked">Never</strong></div>
+    </div>
+</div>
+
+<main class="layout">
+    <div class="meta">
+        <div class="pill">Environment: <strong>Production</strong></div>
+        <div class="pill">Region: <strong>us-east-1</strong></div>
+        <div class="meta-right">
+            <span>Total tiles: <strong>100</strong></span>
+            <span>Unique APIs: <strong>5</strong></span>
+        </div>
+    </div>
+
+    <div class="tile-wrapper-card">
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-swatch ok"></span> Running (HTTP 2xx, fast)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch warn"></span> Not certain (slow / borderline)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch err"></span> Down (error / timeout)
+            </div>
+        </div>
+
+        <div id="tile-grid" class="tile-grid">
+            <!-- 100 tiles will be injected by JS -->
+        </div>
+    </div>
+
+    <div class="footer">
+        Backend services health and response status • ValueMomentum Operational Health Dashboard
+    </div>
+</main>
+
+<script>
+// -------- CONFIG --------
+const SERVICES = [
+    {
+        id: 'Policysubmission',
+        name: 'Quote Submission',
+        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health'
+    },
+    {
+        id: 'Policymanager',
+        name: 'Policy Administration',
+        health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health'
+    },
+    {
+        id: 'Claims',
+        name: 'Claims Management',
+        health: 'https://vm-service-claims.onrender.com/claims/health'
+    },
+    {
+        id: 'Claimsreview',
+        name: 'Underwriting Risk Assessment',
+        health: 'https://vm-service-claims-review.onrender.com/claimsreview/health'
+    },
+    {
+        id: 'Claimsfraud',
+        name: 'Rating',
+        health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health'
+    }
+];
+
+const TOTAL_TILES = 100;
+const REFRESH_INTERVAL = 10 * 1000; // 10s
+
+// -------- STATE --------
+const tileMetaList = []; // { tileId, serviceId, serviceIndex }
+const serviceResults = {}; // serviceId -> last result
+
+// -------- INIT UI --------
+const gridEl = document.getElementById('tile-grid');
+const lastCheckedEl = document.getElementById('last-checked');
+document.getElementById('refresh-interval-label').textContent = (REFRESH_INTERVAL / 1000) + 's';
+
+// build 100 tiles, round-robin across the 5 APIs
+(function buildTiles(){
+    for(let i = 0; i < TOTAL_TILES; i++){
+        const serviceIndex = i % SERVICES.length;
+        const service = SERVICES[serviceIndex];
+        const tileId = 'tile-' + (i + 1);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile';
+        wrapper.id = tileId;
+        wrapper.dataset.serviceId = service.id;
+
+        wrapper.innerHTML = `
+            <div class="tile-top">
+                <div class="tile-name">${service.name}</div>
+                <div class="tile-id">${service.id}</div>
+            </div>
+            <div class="tile-bottom">
+                <span class="tile-status-text">
+                    <span class="status-dot"></span>
+                    <span class="tile-status-label">Checking…</span>
+                </span>
+                <span class="tile-meta">
+                    HTTP <span class="tile-code">—</span>
+                    • <span class="tile-rt">—</span>
+                </span>
+            </div>
+        `;
+
+        gridEl.appendChild(wrapper);
+        tileMetaList.push({
+            tileId,
+            serviceId: service.id,
+            serviceIndex
+        });
+    }
+})();
+
+// -------- HEALTH CHECK LOGIC --------
+async function fetchServiceHealth(service){
+    const start = performance.now();
+    let status = 'DOWN';
+    let statusLabel = 'Down';
+    let stateClass = 'down';
+    let httpCode = 'ERR';
+    let responseTime = null;
+
+    try{
+        const res = await fetch(service.health, { method:'GET', cache:'no-store' });
+        const duration = Math.round(performance.now() - start);
+        responseTime = duration;
+        httpCode = res.status;
+
+        // Classification:
+        // - UP (green): 2xx and fast (<= 800ms)
+        // - DEGRADED (yellow): 2xx but slow (> 800ms)
+        // - DOWN (red): anything else or network error
+        if(res.ok){
+            if(duration <= 800){
+                status = 'UP';
+                statusLabel = 'Running';
+                stateClass = 'up';
+            } else {
+                status = 'DEGRADED';
+                statusLabel = 'Not certain';
+                stateClass = 'degraded';
+            }
+        } else {
+            status = 'DOWN';
+            statusLabel = 'Down';
+            stateClass = 'down';
+        }
+    } catch(e){
+        status = 'DOWN';
+        statusLabel = 'Down';
+        stateClass = 'down';
+        httpCode = 'ERR';
+        responseTime = null;
+    }
+
+    return {
+        serviceId: service.id,
+        status,
+        statusLabel,
+        stateClass,
+        httpCode,
+        responseTime
+    };
+}
+
+function applyResultToTile(tileId, result){
+    const tile = document.getElementById(tileId);
+    if(!tile || !result) return;
+
+    tile.classList.remove('up','degraded','down');
+    tile.classList.add(result.stateClass);
+
+    const labelEl = tile.querySelector('.tile-status-label');
+    const codeEl = tile.querySelector('.tile-code');
+    const rtEl = tile.querySelector('.tile-rt');
+
+    if(labelEl) labelEl.textContent = result.statusLabel;
+    if(codeEl) codeEl.textContent = result.httpCode;
+    if(rtEl) rtEl.textContent = result.responseTime != null ? result.responseTime + ' ms' : '—';
+}
+
+async function refreshAll(){
+    // 1. Call each API ONCE
+    const checks = SERVICES.map(s => fetchServiceHealth(s));
+    const results = await Promise.all(checks);
+
+    // 2. Index by serviceId
+    results.forEach(r => {
+        serviceResults[r.serviceId] = r;
+    });
+
+    // 3. Apply the result of each service to all tiles mapped to that service
+    tileMetaList.forEach(meta => {
+        const res = serviceResults[meta.serviceId];
+        applyResultToTile(meta.tileId, res);
+    });
+
+    // 4. Update "last checked"
+    const now = new Date();
+    lastCheckedEl.textContent = now.toLocaleTimeString();
+}
+
+// initial load & interval
+refreshAll();
+setInterval(refreshAll, REFRESH_INTERVAL);
+</script>
+</body>
+</html>

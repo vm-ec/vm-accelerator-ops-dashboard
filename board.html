@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ValueMomentum - Operational Health Dashboard</title>
+<title>ValueMomentum - Operational Health Dashboard </title>
 <style>
     :root{
         --bg:#f6f8fa;
@@ -83,64 +83,23 @@
         color:var(--muted);
     }
 
-    /* CATEGORY GRID (5 tile columns + 1 AI column = 6) */
+    /* TILE GRID (10x10) */
     .tile-wrapper-card{
         background:var(--card);
         border-radius:14px;
         box-shadow:var(--shadow);
         padding:14px;
     }
-
-    .category-grid{
+    .tile-grid{
         display:grid;
-        grid-template-columns:repeat(6,minmax(0,1fr));
-        gap:10px;
-        align-items:start;
+        grid-template-columns:repeat(10,minmax(0,1fr));
+        gap:6px;
     }
-    @media (max-width:1100px){
-        .category-grid{
-            grid-template-columns:repeat(3,minmax(0,1fr));
-        }
-    }
-    @media (max-width:800px){
-        .category-grid{
-            grid-template-columns:repeat(2,minmax(0,1fr));
-        }
+    @media (max-width:900px){
+        .tile-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
     }
     @media (max-width:600px){
-        .category-grid{
-            grid-template-columns:1fr;
-        }
-    }
-
-    .category-column{
-        border-radius:12px;
-        padding:8px;
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-    }
-    .category-header{
-        font-size:12px;
-        font-weight:700;
-        text-transform:uppercase;
-        letter-spacing:0.08em;
-        color:#111827;
-        padding-bottom:4px;
-        border-bottom:1px dashed rgba(15,23,42,0.2);
-        margin-bottom:2px;
-    }
-
-    .category-subtitle{
-        font-size:11px;
-        color:var(--muted);
-        margin-bottom:4px;
-    }
-
-    .category-inner-grid{
-        display:grid;
-        grid-template-columns:repeat(2,minmax(0,1fr)); /* 2x10 = 20 tiles per category */
-        gap:6px;
+        .tile-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
     }
 
     .tile{
@@ -326,7 +285,7 @@
     }
     .modal-metric-label{
         font-size:11px;
-        color:#6b7280;
+        color:var(--muted);
         margin-bottom:2px;
     }
     .modal-metric-value{
@@ -335,7 +294,7 @@
     }
     .modal-metric-foot{
         font-size:11px;
-        color:#9ca3af;
+        color:var(--muted);
         margin-top:2px;
     }
 
@@ -370,6 +329,7 @@
 
     .hidden{display:none;}
 
+    /* CHART INSIDE MODAL */
     .modal-chart-wrapper{
         margin-top:6px;
         border-radius:10px;
@@ -382,7 +342,7 @@
         justify-content:space-between;
         align-items:center;
         font-size:11px;
-        color:#6b7280;
+        color:var(--muted);
         margin-bottom:4px;
     }
     .modal-chart-legend{
@@ -401,7 +361,7 @@
         background:#0f6ebf;
     }
 
-    /* AI INSIGHTS BOX (bottom) */
+    /* AI INSIGHTS BOX */
     .ai-card{
         margin-top:18px;
         background:var(--card);
@@ -444,46 +404,6 @@
         color:#374151;
     }
     .ai-list li{margin-bottom:3px;}
-
-    /* AI QUICK COLUMN (6th column, improved layout) */
-    .ai-quick-body{
-        font-size:11px;
-        color:#111827;
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-    }
-    .ai-quick-section{
-        background:rgba(255,255,255,0.9);
-        border-radius:8px;
-        padding:6px 7px 5px;
-        box-shadow:0 1px 3px rgba(0,0,0,0.04);
-    }
-    .ai-quick-title{
-        font-size:11px;
-        font-weight:600;
-        color:#111827;
-        margin-bottom:2px;
-    }
-    .ai-quick-line{
-        font-size:11px;
-        color:#111827;
-        margin-bottom:1px;
-    }
-    .ai-quick-note{
-        font-size:10px;
-        color:#4b5563;
-        margin-top:2px;
-    }
-    .ai-quick-pill{
-        display:inline-block;
-        padding:2px 6px;
-        border-radius:999px;
-        font-size:10px;
-        background:#e5e7eb;
-        color:#374151;
-        margin-top:2px;
-    }
 </style>
 </head>
 <body>
@@ -524,13 +444,12 @@
             </div>
         </div>
 
-        <!-- 5 CATEGORY COLUMNS + 1 AI QUICK COLUMN -->
-        <div id="category-grid" class="category-grid">
-            <!-- JS injects columns -->
+        <div id="tile-grid" class="tile-grid">
+            <!-- 100 tiles will be injected by JS -->
         </div>
     </div>
 
-    <!-- DETAILED AI INSIGHTS (bottom) -->
+    <!-- AI INSIGHTS BOX -->
     <section class="ai-card" id="ai-card">
         <div class="ai-header">
             <div class="ai-title">AI Operational Insights</div>
@@ -571,6 +490,7 @@
             </div>
         </div>
 
+        <!-- LINE CHART: response time over last checks -->
         <div class="modal-section-title">Time vs Response Time (last checks)</div>
         <div class="modal-chart-wrapper">
             <div class="modal-chart-header">
@@ -638,66 +558,34 @@
 
 <script>
 // -------- CONFIG --------
-
-// IDs: 1 word; Names: exactly 2 words
 const SERVICES = [
     {
-        id: '1',
+        id: 'Quote',
+        name: 'Quote Submission',
+        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
+        metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
+    },
+    {
+        id: 'Policy',
         name: 'Policy Admin',
-        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
-        metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
-    },
-    {
-        id: '2',
-        name: 'Quote Generation',
         health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
         metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
     },
     {
-        id: '3',
-        name: 'Claims Submission',
+        id: 'Claims',
+        name: 'Claims Manage',
         health: 'https://vm-service-claims.onrender.com/claims/health',
         metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
     },
     {
-        id: '4',
-        name: 'Underwriting',
+        id: 'Risk',
+        name: 'Underwriting Risk Assessment',
         health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
         metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
     },
     {
-        id: '5',
+        id: 'Rating',
         name: 'Rating',
-        health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
-        metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
-    },
-	{
-        id: '6',
-        name: 'Appetite Check',
-        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
-        metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
-    },
-    {
-        id: '7',
-        name: 'Claims FraudCheck',
-        health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
-        metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
-    },
-    {
-        id: '8',
-        name: 'Claims Approval',
-        health: 'https://vm-service-claims.onrender.com/claims/health',
-        metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
-    },
-    {
-        id: '9',
-        name: 'Forms Management',
-        health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
-        metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
-    },
-    {
-        id: '10',
-        name: 'Forms Review',
         health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
         metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
     }
@@ -706,26 +594,8 @@ const SERVICES = [
 const TOTAL_TILES = 100;
 const REFRESH_INTERVAL = 10 * 1000; // 10s
 
-// 5 categories (6th column used for AI quick report)
-const CATEGORIES = [
-    { id:'policy',  title:'Policy Services',  subtitle:'Core & edge policy APIs',   bg:'#fef3c7' },
-    { id:'claims',  title:'Claims Services',  subtitle:'FNOL & adjudication',       bg:'#e0f2fe' },
-    { id:'billing', title:'Billing Services', subtitle:'Billing & invoicing view',  bg:'#ecfdf3' },
-    { id:'rating',  title:'Rating Services',  subtitle:'Rates & pricing checks',    bg:'#f5f3ff' },
-    { id:'shared',  title:'Shared Services',  subtitle:'Shared / cross-cutting',    bg:'#fee2e2' }
-];
-
-// Map services to logical category for AI insights
-const SERVICE_CATEGORY = {
-    PolicyCore: 'Policy',
-    PolicyEdge: 'Policy',
-    ClaimsCore: 'Claims',
-    ClaimsReview: 'Claims',
-    FraudCheck: 'Rating'
-};
-
 // -------- STATE --------
-const tileMetaList = []; // { tileId, serviceId }
+const tileMetaList = []; // { tileId, serviceId, serviceIndex }
 const serviceState = {}; // per service aggregated state
 
 SERVICES.forEach(s=>{
@@ -735,7 +605,7 @@ SERVICES.forEach(s=>{
         lastStateClass: '',
         lastHttpCode: '—',
         lastResponseTime: null,
-        history: [],
+        history: [],            // last N response times
         avgResponseTime: null,
         p95ResponseTime: null,
         cpu: null,
@@ -751,11 +621,11 @@ SERVICES.forEach(s=>{
 });
 
 // -------- DOM ELEMENTS --------
-const categoryGridEl = document.getElementById('category-grid');
+const gridEl = document.getElementById('tile-grid');
 const lastCheckedEl = document.getElementById('last-checked');
 document.getElementById('refresh-interval-label').textContent = (REFRESH_INTERVAL / 1000) + 's';
 
-// modal
+// modal elements
 const modalOverlay = document.getElementById('modal-overlay');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalServiceName = document.getElementById('modal-service-name');
@@ -780,12 +650,9 @@ const modalBtnDeepCheck = document.getElementById('modal-btn-deep-check');
 const modalBtnJson = document.getElementById('modal-btn-json');
 const modalRtChart = document.getElementById('modal-rt-chart');
 
-// AI detailed bottom
+// AI insights elements
 const aiRiskPill = document.getElementById('ai-risk-pill');
 const aiBody = document.getElementById('ai-body');
-
-// AI quick column body
-let aiQuickBodyEl = null;
 
 let currentModalServiceId = null;
 
@@ -822,82 +689,46 @@ function computeP95(arr){
     return Math.round(sorted[idx]);
 }
 
-// -------- BUILD COLUMNS & TILES --------
-(function buildCategorisedTiles(){
-    let globalTileIndex = 0;
+// -------- TILE BUILD --------
+(function buildTiles(){
+    for(let i = 0; i < TOTAL_TILES; i++){
+        const serviceIndex = i % SERVICES.length;
+        const service = SERVICES[serviceIndex];
+        const tileId = 'tile-' + (i + 1);
 
-    // 5 tile columns
-    CATEGORIES.forEach((cat) => {
-        const col = document.createElement('div');
-        col.className = 'category-column';
-        col.style.background = cat.bg;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile';
+        wrapper.id = tileId;
+        wrapper.dataset.serviceId = service.id;
 
-        col.innerHTML = `
-            <div class="category-header">${cat.title}</div>
-            <div class="category-subtitle">${cat.subtitle}</div>
-            <div class="category-inner-grid"></div>
+        wrapper.innerHTML = `
+            <div class="tile-top">
+                <div class="tile-name">${service.name}</div>
+                <div class="tile-id">${service.id}</div>
+            </div>
+            <div class="tile-bottom">
+                <span class="tile-status-text">
+                    <span class="status-dot"></span>
+                    <span class="tile-status-label">Checking…</span>
+                </span>
+                <span class="tile-meta">
+                    HTTP <span class="tile-code">—</span>
+                    • <span class="tile-rt">—</span>
+                </span>
+            </div>
         `;
 
-        const innerGrid = col.querySelector('.category-inner-grid');
+        wrapper.addEventListener('click', () => {
+            openModalForService(service.id);
+        });
 
-        // 20 tiles per category
-        for(let i = 0; i < 20; i++){
-            const tileId = `tile-${cat.id}-${i+1}`;
-            const serviceIndex = globalTileIndex % SERVICES.length;
-            const service = SERVICES[serviceIndex];
-
-            const tile = document.createElement('div');
-            tile.className = 'tile';
-            tile.id = tileId;
-            tile.dataset.serviceId = service.id;
-
-            tile.innerHTML = `
-                <div class="tile-top">
-                    <div class="tile-name">${service.name}</div>
-                    <div class="tile-id">${service.id}</div>
-                </div>
-                <div class="tile-bottom">
-                    <span class="tile-status-text">
-                        <span class="status-dot"></span>
-                        <span class="tile-status-label">Checking…</span>
-                    </span>
-                    <span class="tile-meta">
-                        HTTP <span class="tile-code">—</span>
-                        • <span class="tile-rt">—</span>
-                    </span>
-                </div>
-            `;
-
-            tile.addEventListener('click', () => {
-                openModalForService(service.id);
-            });
-
-            innerGrid.appendChild(tile);
-            tileMetaList.push({ tileId, serviceId: service.id });
-            globalTileIndex++;
-        }
-
-        categoryGridEl.appendChild(col);
-    });
-
-    // 6th column: AI quick report, grey background
-    const aiCol = document.createElement('div');
-    aiCol.className = 'category-column';
-    aiCol.style.background = '#e5e7eb'; // grey
-
-    aiCol.innerHTML = `
-        <div class="category-header">AI Snapshot</div>
-        <div class="category-subtitle">Quick health report</div>
-        <div class="ai-quick-body" id="ai-quick-body">
-            <div class="ai-quick-section">
-                <div class="ai-quick-title">Overall</div>
-                <div class="ai-quick-line">Waiting for data…</div>
-            </div>
-        </div>
-    `;
-
-    categoryGridEl.appendChild(aiCol);
-    aiQuickBodyEl = aiCol.querySelector('#ai-quick-body');
+        gridEl.appendChild(wrapper);
+        tileMetaList.push({
+            tileId,
+            serviceId: service.id,
+            serviceIndex
+        });
+    }
 })();
 
 // -------- FETCH & UPDATE --------
@@ -959,6 +790,7 @@ function updateStateForService(serviceId, healthRes, metricsRes){
 
     const now = Date.now();
 
+    // update health basics
     s.lastStatus = healthRes.status;
     s.lastStateClass = healthRes.stateClass;
     s.lastHttpCode = healthRes.httpCode;
@@ -970,14 +802,17 @@ function updateStateForService(serviceId, healthRes, metricsRes){
         if(s.history.length > 40) s.history.shift();
     }
 
+    // request counters
     s.totalRequests++;
     if(healthRes.httpCode >= 200 && healthRes.httpCode < 300) s.count2xx++;
     else if(healthRes.httpCode >= 400 && healthRes.httpCode < 500) s.count4xx++;
     else if(healthRes.httpCode >= 500 && healthRes.httpCode < 600) s.count5xx++;
 
+    // recalculated stats
     s.avgResponseTime = computeAvg(s.history);
     s.p95ResponseTime = computeP95(s.history);
 
+    // metrics
     if(metricsRes){
         s.lastMetricsJson = metricsRes;
 
@@ -995,9 +830,10 @@ function updateStateForService(serviceId, healthRes, metricsRes){
         if(typeof metricsRes.requestsTotal === 'number') s.totalRequests = metricsRes.requestsTotal;
     }
 
+    // simulate cpu/mem if missing
     if(s.cpu == null) s.cpu = Math.round(20 + Math.random() * 40);
     if(s.mem == null) s.mem = Math.round(30 + Math.random() * 40);
-    if(s.uptime == null) s.uptime = 3600 + Math.random() * 86400;
+    if(s.uptime == null) s.uptime = 3600 + Math.round(Math.random() * 86400);
 }
 
 function applyResultToTiles(serviceId){
@@ -1041,14 +877,14 @@ async function refreshAll(){
     lastCheckedEl.textContent = now.toLocaleTimeString();
 
     updateAIInsights(all);
-    updateAIQuick(all);
 
+    // if modal is open, keep its chart & numbers fresh
     if(currentModalServiceId){
         openModalForService(currentModalServiceId);
     }
 }
 
-// -------- AI INSIGHTS (bottom, richer) --------
+// -------- AI INSIGHTS (DETAILED) --------
 function updateAIInsights(allStates){
     if(!allStates || !allStates.length){
         aiBody.textContent = 'No metrics yet. Waiting for first successful poll.';
@@ -1060,6 +896,7 @@ function updateAIInsights(allStates){
 
     let highRisk = [];
     let mediumRisk = [];
+    let lowRisk = [];
 
     allStates.forEach(s=>{
         const errCount = s.count4xx + s.count5xx;
@@ -1077,15 +914,14 @@ function updateAIInsights(allStates){
             errRate,
             status: s.lastStatus,
             totalRequests: s.totalRequests,
-            errCount,
-            category: SERVICE_CATEGORY[s.info.id] || 'Other'
+            errCount
         };
 
         if(level === 'HIGH') highRisk.push(descriptor);
         else if(level === 'MEDIUM') mediumRisk.push(descriptor);
+        else lowRisk.push(descriptor);
     });
 
-    // derive overall risk again (shared with snapshot)
     let overall = 'Low';
     let pillBg = '#dcfce7';
     let pillColor = '#166534';
@@ -1102,40 +938,11 @@ function updateAIInsights(allStates){
     aiRiskPill.style.background = pillBg;
     aiRiskPill.style.color = pillColor;
 
-    // category impact
-    const categoryImpact = {};
-    allStates.forEach(s => {
-        const cat = SERVICE_CATEGORY[s.info.id] || 'Other';
-        if(!categoryImpact[cat]) categoryImpact[cat] = { total:0, nonUp:0 };
-        categoryImpact[cat].total++;
-        if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
-    });
-
-    // short-term risk forecast
-    let forecastLabel = 'Low';
-    if(highRisk.length >= 2 || (highRisk.length === 1 && mediumRisk.length >= 2)){
-        forecastLabel = 'High';
-    } else if(highRisk.length === 1 || mediumRisk.length >= 2){
-        forecastLabel = 'Medium';
-    }
-
     let html = '';
 
+    // Summary
     html += `<div class="ai-section-title">Summary</div>`;
-    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> backend services across policy, claims, billing, rating and shared domains.</p>`;
-
-    // Category impact
-    html += `<div class="ai-section-title">Domain impact</div>`;
-    html += `<ul class="ai-list">`;
-    Object.keys(categoryImpact).forEach(cat=>{
-        const c = categoryImpact[cat];
-        const nonUp = c.nonUp;
-        const text = nonUp === 0
-            ? 'all healthy'
-            : `${nonUp}/${c.total} showing warnings or incidents`;
-        html += `<li><strong>${cat}</strong> — ${text}.</li>`;
-    });
-    html += `</ul>`;
+    html += `<p>AI has analysed the last few health checks across <strong>${allStates.length}</strong> backend services, using response times and HTTP error patterns to estimate operational risk.</p>`;
 
     // High-risk services
     html += `<div class="ai-section-title">High-risk services (likely incidents)</div>`;
@@ -1144,12 +951,12 @@ function updateAIInsights(allStates){
     } else {
         html += `<ul class="ai-list">`;
         highRisk.forEach(s => {
-            const bits = [];
-            if(s.status === 'DOWN') bits.push('currently DOWN');
-            if(s.avg > 2000) bits.push(`avg latency ~${s.avg} ms`);
-            if(s.errRate > 0.15) bits.push(`error rate ${(s.errRate*100).toFixed(1)}%`);
-            const reason = bits.join(', ');
-            html += `<li><strong>${s.id}</strong> (${s.name}, ${s.category}) — ${reason} over ${s.totalRequests} checks.</li>`;
+            const reasonBits = [];
+            if(s.status === 'DOWN') reasonBits.push('service is currently DOWN');
+            if(s.avg > 2000) reasonBits.push(`very slow average latency (~${s.avg} ms)`);
+            if(s.errRate > 0.15) reasonBits.push(`high error rate (${(s.errRate*100).toFixed(1)}%)`);
+            const reason = reasonBits.join(', ');
+            html += `<li><strong>${s.id}</strong> (${s.name}) — ${reason}. Observed over ${s.totalRequests} checks.</li>`;
         });
         html += `</ul>`;
     }
@@ -1164,34 +971,26 @@ function updateAIInsights(allStates){
 
     html += `<div class="ai-section-title">Degradation trends</div>`;
     if(!trendingSlow.length && !trendingErrors.length){
-        html += `<p>No strong latency or error-rate trends detected. Performance appears stable.</p>`;
+        html += `<p>No significant latency or error-rate trends detected. Performance appears stable.</p>`;
     } else {
         if(trendingSlow.length){
-            html += `<p>Latency is trending high (avg &gt; 1500 ms) for:</p><ul class="ai-list">`;
+            html += `<p>The following services show a <strong>rising latency trend</strong> (average &gt; 1500 ms):</p>`;
+            html += `<ul class="ai-list">`;
             trendingSlow.forEach(s=>{
-                html += `<li><strong>${s.info.id}</strong> — avg ~${s.avgResponseTime} ms, p95 ~${s.p95ResponseTime || 'n/a'} ms.</li>`;
+                html += `<li><strong>${s.info.id}</strong> — avg ~${s.avgResponseTime} ms (last p95 ~${s.p95ResponseTime || 'n/a'} ms).</li>`;
             });
             html += `</ul>`;
         }
         if(trendingErrors.length){
-            html += `<p>Error patterns (error rate &gt; 10%) observed for:</p><ul class="ai-list">`;
+            html += `<p>The following services show a <strong>concerning error pattern</strong> (error rate &gt; 10% over recent checks):</p>`;
+            html += `<ul class="ai-list">`;
             trendingErrors.forEach(s=>{
                 const errCount = s.count4xx + s.count5xx;
-                const rate = s.totalRequests ? errCount / s.totalRequests : 0;
-                html += `<li><strong>${s.info.id}</strong> — ${errCount}/${s.totalRequests} failing (${(rate*100).toFixed(1)}%).</li>`;
+                const rate = s.totalRequests ? (errCount / s.totalRequests) : 0;
+                html += `<li><strong>${s.info.id}</strong> — ${errCount}/${s.totalRequests} requests failing (${(rate*100).toFixed(1)}% error rate).</li>`;
             });
             html += `</ul>`;
         }
-    }
-
-    // Short-term forecast
-    html += `<div class="ai-section-title">Short-term risk forecast (next 30–60 min)</div>`;
-    if(forecastLabel === 'High'){
-        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, especially in domains currently marked as high risk.</p>`;
-    } else if(forecastLabel === 'Medium'){
-        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation in services listed as high or medium risk.</p>`;
-    } else {
-        html += `<p>Current signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic windows.</p>`;
     }
 
     // Recommended actions
@@ -1199,15 +998,15 @@ function updateAIInsights(allStates){
     const actions = [];
 
     if(highRisk.length || trendingErrors.length){
-        actions.push('Prioritise log and metric review for high-risk services (HTTP 5xx, timeouts, connection resets).');
-        actions.push('Validate downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
+        actions.push('Inspect recent application and infrastructure logs for affected services (5xx spikes, timeouts, connection resets).');
+        actions.push('Validate downstream dependencies (DB, message queues, 3rd-party APIs) for elevated error rates or throttling.');
     }
     if(trendingSlow.length){
-        actions.push('Profile slow endpoints: inspect DB query plans, cache hit ratios and pool saturation for affected services.');
-        actions.push('Review instance/pod resource usage (CPU, memory, GC pauses) and consider scaling out if consistently elevated.');
+        actions.push('Profile slow endpoints: review DB query plans, cache hit ratios, and thread-pool / connection-pool saturation.');
+        actions.push('Check resource utilisation on pods/instances (CPU, memory, GC pauses) and consider scaling out if consistently high.');
     }
     if(!actions.length){
-        actions.push('Maintain monitoring; no urgent remediation needed. Re-check during core business and batch-processing windows.');
+        actions.push('Continue monitoring. No urgent remediation is required, but keep an eye on this dashboard during peak hours.');
     }
 
     html += `<ul class="ai-list">`;
@@ -1219,111 +1018,12 @@ function updateAIInsights(allStates){
     aiBody.innerHTML = html;
 }
 
-// -------- AI QUICK COLUMN (compact, row-based snapshot) --------
-function updateAIQuick(allStates){
-    if(!aiQuickBodyEl) return;
-
-    if(!allStates || !allStates.length){
-        aiQuickBodyEl.innerHTML = `
-            <div class="ai-quick-section">
-                <div class="ai-quick-title">Overall</div>
-                <div class="ai-quick-line">Status: waiting for data…</div>
-            </div>
-        `;
-        return;
-    }
-
-    const up = allStates.filter(s => s.lastStatus === 'UP').length;
-    const degraded = allStates.filter(s => s.lastStatus === 'DEGRADED').length;
-    const down = allStates.filter(s => s.lastStatus === 'DOWN').length;
-
-    // Slowest & fastest based on avg or last
-    let slowest = null;
-    let fastest = null;
-    allStates.forEach(s=>{
-        const v = s.avgResponseTime || s.lastResponseTime;
-        if(v != null){
-            if(!slowest || v > slowest.value){
-                slowest = { id:s.info.id, value:v };
-            }
-            if(!fastest || v < fastest.value){
-                fastest = { id:s.info.id, value:v };
-            }
-        }
-    });
-
-    // highest & lowest error rate
-    let worstErr = null;
-    let bestErr = null;
-    allStates.forEach(s=>{
-        const err = s.count4xx + s.count5xx;
-        const rate = s.totalRequests ? err / s.totalRequests : 0;
-        if(s.totalRequests > 0){
-            if(!worstErr || rate > worstErr.rate){
-                worstErr = { id:s.info.id, rate };
-            }
-            if(bestErr === null || rate < bestErr.rate){
-                bestErr = { id:s.info.id, rate };
-            }
-        }
-    });
-
-    // quick risk level for snapshot
-    let overall = 'Low';
-    if(down > 0 || (worstErr && worstErr.rate > 0.15) || (slowest && slowest.value > 2000)){
-        overall = 'High';
-    } else if(degraded > 0 || (worstErr && worstErr.rate > 0.05) || (slowest && slowest.value > 1000)){
-        overall = 'Medium';
-    }
-
-    // simple hint text
-    let hint = 'Landscape stable.';
-    if(down > 0){
-        hint = `${down} service(s) down — check incidents.`;
-    } else if(degraded > 0){
-        hint = `${degraded} service(s) slow — watch latency.`;
-    } else if(worstErr && worstErr.rate > 0.1){
-        hint = `Errors concentrated on ${worstErr.id}.`;
-    }
-
-    aiQuickBodyEl.innerHTML = `
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Overall</div>
-            <div class="ai-quick-line">Risk: <strong>${overall}</strong></div>
-            <div class="ai-quick-line">UP / DEG / DOWN: ${up} / ${degraded} / ${down}</div>
-        </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Performance</div>
-            <div class="ai-quick-line">
-                Fastest: ${fastest ? fastest.id + ' ~ ' + fastest.value + ' ms' : '—'}
-            </div>
-            <div class="ai-quick-line">
-                Slowest: ${slowest ? slowest.id + ' ~ ' + slowest.value + ' ms' : '—'}
-            </div>
-        </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Reliability</div>
-            <div class="ai-quick-line">
-                Best error rate: ${bestErr ? bestErr.id + ' ' + (bestErr.rate*100).toFixed(1) + '%' : '—'}
-            </div>
-            <div class="ai-quick-line">
-                Worst error rate: ${worstErr ? worstErr.id + ' ' + (worstErr.rate*100).toFixed(1) + '%' : '—'}
-            </div>
-        </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">AI Focus</div>
-            <div class="ai-quick-line">${hint}</div>
-            <div class="ai-quick-note">Use this pane as a quick scan; open tiles for drill-down.</div>
-        </div>
-    `;
-}
-
-// -------- CHART RENDERING --------
+// -------- CHART RENDERING (response time history) --------
 function renderResponseTimeChartForService(serviceId){
     const s = serviceState[serviceId];
     if(!s || !modalRtChart) return;
 
-    const values = s.history.slice(-30);
+    const values = s.history.slice(-30); // last 30 checks
     const width = 320;
     const height = 90;
     const pad = 8;
@@ -1429,12 +1129,12 @@ document.addEventListener('keydown', (e)=>{
 // modal buttons
 modalBtnLogs.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-    alert(`Logs view placeholder.\nWire this to your log platform for service: ${currentModalServiceId}.`);
+    alert(`Logs view placeholder.\nWire this to Kibana / CloudWatch / ELK for service: ${currentModalServiceId}.`);
 });
 modalBtnDeepCheck.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
     const s = serviceState[currentModalServiceId];
-    alert(`Running deep health check (conceptual) for ${currentModalServiceId}.\n\nSuggested sequence:\n• Synthetic endpoint probe\n• Dependency checks (DB, queues, external APIs)\n• Cache / circuit-breaker status\n• Compare new latency vs historical p95\n\nLast observed status: ${s.lastStatus}`);
+    alert(`Running deep health check (conceptual) for ${currentModalServiceId}.\n\nSequence to implement:\n• Synthetic endpoint probe\n• Dependency checks (DB, queues, external APIs)\n• Cache / circuit-breaker status\n• Comparing new latency vs historical p95\n\nLast observed status: ${s.lastStatus}`);
 });
 modalBtnJson.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;

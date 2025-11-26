@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ValueMomentum - Operational Health Dashboard</title>
+<title>ValueMomentum - Operational Health Dashboard (Categorized Tiles + AI Column)</title>
 <style>
     :root{
         --bg:#f6f8fa;
@@ -445,44 +445,40 @@
     }
     .ai-list li{margin-bottom:3px;}
 
-    /* AI QUICK COLUMN (6th column, improved layout) */
+    /* AI QUICK COLUMN (6th column) */
     .ai-quick-body{
         font-size:11px;
         color:#111827;
         display:flex;
         flex-direction:column;
-        gap:6px;
+        gap:4px;
     }
-    .ai-quick-section{
-        background:rgba(255,255,255,0.9);
-        border-radius:8px;
-        padding:6px 7px 5px;
-        box-shadow:0 1px 3px rgba(0,0,0,0.04);
-    }
-    .ai-quick-title{
+    .ai-quick-row{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
         font-size:11px;
-        font-weight:600;
-        color:#111827;
-        margin-bottom:2px;
     }
-    .ai-quick-line{
-        font-size:11px;
-        color:#111827;
-        margin-bottom:1px;
-    }
-    .ai-quick-note{
-        font-size:10px;
+    .ai-quick-label{
         color:#4b5563;
-        margin-top:2px;
     }
-    .ai-quick-pill{
-        display:inline-block;
+    .ai-quick-value{
+        font-weight:600;
+    }
+    .ai-quick-divider{
+        height:1px;
+        background:#d1d5db;
+        margin:4px 0;
+    }
+    .ai-quick-tag{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        font-size:10px;
         padding:2px 6px;
         border-radius:999px;
-        font-size:10px;
         background:#e5e7eb;
         color:#374151;
-        margin-top:2px;
     }
 </style>
 </head>
@@ -530,7 +526,7 @@
         </div>
     </div>
 
-    <!-- DETAILED AI INSIGHTS (bottom) -->
+    <!-- DETAILED AI INSIGHTS (bottom, preserved) -->
     <section class="ai-card" id="ai-card">
         <div class="ai-header">
             <div class="ai-title">AI Operational Insights</div>
@@ -642,62 +638,32 @@
 // IDs: 1 word; Names: exactly 2 words
 const SERVICES = [
     {
-        id: '1',
-        name: 'Policy Admin',
+        id: 'PolicyCore',
+        name: 'Policy Core',
         health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
         metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
     },
     {
-        id: '2',
-        name: 'Quote Generation',
+        id: 'PolicyEdge',
+        name: 'Policy Edge',
         health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
         metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
     },
     {
-        id: '3',
-        name: 'Claims Submission',
+        id: 'ClaimsCore',
+        name: 'Claims Core',
         health: 'https://vm-service-claims.onrender.com/claims/health',
         metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
     },
     {
-        id: '4',
-        name: 'Underwriting',
+        id: 'ClaimsReview',
+        name: 'Claims Review',
         health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
         metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
     },
     {
-        id: '5',
-        name: 'Rating',
-        health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
-        metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
-    },
-	{
-        id: '6',
-        name: 'Appetite Check',
-        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
-        metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
-    },
-    {
-        id: '7',
-        name: 'Claims FraudCheck',
-        health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
-        metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
-    },
-    {
-        id: '8',
-        name: 'Claims Approval',
-        health: 'https://vm-service-claims.onrender.com/claims/health',
-        metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
-    },
-    {
-        id: '9',
-        name: 'Forms Management',
-        health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
-        metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
-    },
-    {
-        id: '10',
-        name: 'Forms Review',
+        id: 'FraudCheck',
+        name: 'Fraud Check',
         health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
         metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
     }
@@ -714,15 +680,6 @@ const CATEGORIES = [
     { id:'rating',  title:'Rating Services',  subtitle:'Rates & pricing checks',    bg:'#f5f3ff' },
     { id:'shared',  title:'Shared Services',  subtitle:'Shared / cross-cutting',    bg:'#fee2e2' }
 ];
-
-// Map services to logical category for AI insights
-const SERVICE_CATEGORY = {
-    PolicyCore: 'Policy',
-    PolicyEdge: 'Policy',
-    ClaimsCore: 'Claims',
-    ClaimsReview: 'Claims',
-    FraudCheck: 'Rating'
-};
 
 // -------- STATE --------
 const tileMetaList = []; // { tileId, serviceId }
@@ -784,7 +741,7 @@ const modalRtChart = document.getElementById('modal-rt-chart');
 const aiRiskPill = document.getElementById('ai-risk-pill');
 const aiBody = document.getElementById('ai-body');
 
-// AI quick column body
+// AI quick column body (will be created in JS)
 let aiQuickBodyEl = null;
 
 let currentModalServiceId = null;
@@ -889,9 +846,9 @@ function computeP95(arr){
         <div class="category-header">AI Snapshot</div>
         <div class="category-subtitle">Quick health report</div>
         <div class="ai-quick-body" id="ai-quick-body">
-            <div class="ai-quick-section">
-                <div class="ai-quick-title">Overall</div>
-                <div class="ai-quick-line">Waiting for data…</div>
+            <div class="ai-quick-row">
+                <span class="ai-quick-label">Status:</span>
+                <span class="ai-quick-value">Waiting…</span>
             </div>
         </div>
     `;
@@ -1048,7 +1005,7 @@ async function refreshAll(){
     }
 }
 
-// -------- AI INSIGHTS (bottom, richer) --------
+// -------- AI INSIGHTS (bottom, detailed) --------
 function updateAIInsights(allStates){
     if(!allStates || !allStates.length){
         aiBody.textContent = 'No metrics yet. Waiting for first successful poll.';
@@ -1077,15 +1034,13 @@ function updateAIInsights(allStates){
             errRate,
             status: s.lastStatus,
             totalRequests: s.totalRequests,
-            errCount,
-            category: SERVICE_CATEGORY[s.info.id] || 'Other'
+            errCount
         };
 
         if(level === 'HIGH') highRisk.push(descriptor);
         else if(level === 'MEDIUM') mediumRisk.push(descriptor);
     });
 
-    // derive overall risk again (shared with snapshot)
     let overall = 'Low';
     let pillBg = '#dcfce7';
     let pillColor = '#166534';
@@ -1102,59 +1057,27 @@ function updateAIInsights(allStates){
     aiRiskPill.style.background = pillBg;
     aiRiskPill.style.color = pillColor;
 
-    // category impact
-    const categoryImpact = {};
-    allStates.forEach(s => {
-        const cat = SERVICE_CATEGORY[s.info.id] || 'Other';
-        if(!categoryImpact[cat]) categoryImpact[cat] = { total:0, nonUp:0 };
-        categoryImpact[cat].total++;
-        if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
-    });
-
-    // short-term risk forecast
-    let forecastLabel = 'Low';
-    if(highRisk.length >= 2 || (highRisk.length === 1 && mediumRisk.length >= 2)){
-        forecastLabel = 'High';
-    } else if(highRisk.length === 1 || mediumRisk.length >= 2){
-        forecastLabel = 'Medium';
-    }
-
     let html = '';
 
     html += `<div class="ai-section-title">Summary</div>`;
-    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> backend services across policy, claims, billing, rating and shared domains.</p>`;
+    html += `<p>AI has analysed the last health checks across <strong>${allStates.length}</strong> backend services, using latency and error patterns across policy, claims, billing, rating and shared services.</p>`;
 
-    // Category impact
-    html += `<div class="ai-section-title">Domain impact</div>`;
-    html += `<ul class="ai-list">`;
-    Object.keys(categoryImpact).forEach(cat=>{
-        const c = categoryImpact[cat];
-        const nonUp = c.nonUp;
-        const text = nonUp === 0
-            ? 'all healthy'
-            : `${nonUp}/${c.total} showing warnings or incidents`;
-        html += `<li><strong>${cat}</strong> — ${text}.</li>`;
-    });
-    html += `</ul>`;
-
-    // High-risk services
     html += `<div class="ai-section-title">High-risk services (likely incidents)</div>`;
     if(!highRisk.length){
         html += `<p>No services are currently classified as high risk.</p>`;
     } else {
         html += `<ul class="ai-list">`;
         highRisk.forEach(s => {
-            const bits = [];
-            if(s.status === 'DOWN') bits.push('currently DOWN');
-            if(s.avg > 2000) bits.push(`avg latency ~${s.avg} ms`);
-            if(s.errRate > 0.15) bits.push(`error rate ${(s.errRate*100).toFixed(1)}%`);
-            const reason = bits.join(', ');
-            html += `<li><strong>${s.id}</strong> (${s.name}, ${s.category}) — ${reason} over ${s.totalRequests} checks.</li>`;
+            const reasonBits = [];
+            if(s.status === 'DOWN') reasonBits.push('currently DOWN');
+            if(s.avg > 2000) reasonBits.push(`avg latency ~${s.avg} ms`);
+            if(s.errRate > 0.15) reasonBits.push(`error rate ${(s.errRate*100).toFixed(1)}%`);
+            const reason = reasonBits.join(', ');
+            html += `<li><strong>${s.id}</strong> (${s.name}) — ${reason} over ${s.totalRequests} checks.</li>`;
         });
         html += `</ul>`;
     }
 
-    // Degradation trends
     const trendingSlow = allStates.filter(s => (s.avgResponseTime || 0) > 1500);
     const trendingErrors = allStates.filter(s => {
         const err = s.count4xx + s.count5xx;
@@ -1167,14 +1090,14 @@ function updateAIInsights(allStates){
         html += `<p>No strong latency or error-rate trends detected. Performance appears stable.</p>`;
     } else {
         if(trendingSlow.length){
-            html += `<p>Latency is trending high (avg &gt; 1500 ms) for:</p><ul class="ai-list">`;
+            html += `<p>Services with rising latency (avg &gt; 1500 ms):</p><ul class="ai-list">`;
             trendingSlow.forEach(s=>{
                 html += `<li><strong>${s.info.id}</strong> — avg ~${s.avgResponseTime} ms, p95 ~${s.p95ResponseTime || 'n/a'} ms.</li>`;
             });
             html += `</ul>`;
         }
         if(trendingErrors.length){
-            html += `<p>Error patterns (error rate &gt; 10%) observed for:</p><ul class="ai-list">`;
+            html += `<p>Services with high error patterns (error rate &gt; 10%):</p><ul class="ai-list">`;
             trendingErrors.forEach(s=>{
                 const errCount = s.count4xx + s.count5xx;
                 const rate = s.totalRequests ? errCount / s.totalRequests : 0;
@@ -1184,30 +1107,19 @@ function updateAIInsights(allStates){
         }
     }
 
-    // Short-term forecast
-    html += `<div class="ai-section-title">Short-term risk forecast (next 30–60 min)</div>`;
-    if(forecastLabel === 'High'){
-        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, especially in domains currently marked as high risk.</p>`;
-    } else if(forecastLabel === 'Medium'){
-        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation in services listed as high or medium risk.</p>`;
-    } else {
-        html += `<p>Current signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic windows.</p>`;
-    }
-
-    // Recommended actions
     html += `<div class="ai-section-title">Recommended next actions</div>`;
     const actions = [];
 
     if(highRisk.length || trendingErrors.length){
-        actions.push('Prioritise log and metric review for high-risk services (HTTP 5xx, timeouts, connection resets).');
-        actions.push('Validate downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
+        actions.push('Prioritise log and metric review for high-risk services (5xx spikes, timeouts, connection resets).');
+        actions.push('Check downstream systems (DB, messaging, external APIs) for throttling or high latency.');
     }
     if(trendingSlow.length){
-        actions.push('Profile slow endpoints: inspect DB query plans, cache hit ratios and pool saturation for affected services.');
-        actions.push('Review instance/pod resource usage (CPU, memory, GC pauses) and consider scaling out if consistently elevated.');
+        actions.push('Profile slow endpoints: review DB query plans, caches, and pool saturation.');
+        actions.push('Validate pod/instance sizing and autoscaling thresholds for peak hours.');
     }
     if(!actions.length){
-        actions.push('Maintain monitoring; no urgent remediation needed. Re-check during core business and batch-processing windows.');
+        actions.push('Maintain monitoring; no urgent remediation needed. Re-check during peak business windows.');
     }
 
     html += `<ul class="ai-list">`;
@@ -1219,15 +1131,15 @@ function updateAIInsights(allStates){
     aiBody.innerHTML = html;
 }
 
-// -------- AI QUICK COLUMN (compact, row-based snapshot) --------
+// -------- AI QUICK COLUMN (compact summary) --------
 function updateAIQuick(allStates){
     if(!aiQuickBodyEl) return;
 
     if(!allStates || !allStates.length){
         aiQuickBodyEl.innerHTML = `
-            <div class="ai-quick-section">
-                <div class="ai-quick-title">Overall</div>
-                <div class="ai-quick-line">Status: waiting for data…</div>
+            <div class="ai-quick-row">
+                <span class="ai-quick-label">Status:</span>
+                <span class="ai-quick-value">Waiting for data…</span>
             </div>
         `;
         return;
@@ -1237,24 +1149,19 @@ function updateAIQuick(allStates){
     const degraded = allStates.filter(s => s.lastStatus === 'DEGRADED').length;
     const down = allStates.filter(s => s.lastStatus === 'DOWN').length;
 
-    // Slowest & fastest based on avg or last
+    // worst latency
     let slowest = null;
-    let fastest = null;
     allStates.forEach(s=>{
         const v = s.avgResponseTime || s.lastResponseTime;
         if(v != null){
             if(!slowest || v > slowest.value){
                 slowest = { id:s.info.id, value:v };
             }
-            if(!fastest || v < fastest.value){
-                fastest = { id:s.info.id, value:v };
-            }
         }
     });
 
-    // highest & lowest error rate
+    // highest error rate
     let worstErr = null;
-    let bestErr = null;
     allStates.forEach(s=>{
         const err = s.count4xx + s.count5xx;
         const rate = s.totalRequests ? err / s.totalRequests : 0;
@@ -1262,58 +1169,35 @@ function updateAIQuick(allStates){
             if(!worstErr || rate > worstErr.rate){
                 worstErr = { id:s.info.id, rate };
             }
-            if(bestErr === null || rate < bestErr.rate){
-                bestErr = { id:s.info.id, rate };
-            }
         }
     });
 
-    // quick risk level for snapshot
-    let overall = 'Low';
-    if(down > 0 || (worstErr && worstErr.rate > 0.15) || (slowest && slowest.value > 2000)){
-        overall = 'High';
-    } else if(degraded > 0 || (worstErr && worstErr.rate > 0.05) || (slowest && slowest.value > 1000)){
-        overall = 'Medium';
-    }
-
-    // simple hint text
     let hint = 'Landscape stable.';
     if(down > 0){
         hint = `${down} service(s) down — check incidents.`;
     } else if(degraded > 0){
-        hint = `${degraded} service(s) slow — watch latency.`;
+        hint = `${degraded} service(s) slow — monitor closely.`;
     } else if(worstErr && worstErr.rate > 0.1){
         hint = `Errors concentrated on ${worstErr.id}.`;
     }
 
     aiQuickBodyEl.innerHTML = `
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Overall</div>
-            <div class="ai-quick-line">Risk: <strong>${overall}</strong></div>
-            <div class="ai-quick-line">UP / DEG / DOWN: ${up} / ${degraded} / ${down}</div>
+        <div class="ai-quick-row">
+            <span class="ai-quick-label">UP / DEG / DOWN</span>
+            <span class="ai-quick-value">${up} / ${degraded} / ${down}</span>
         </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Performance</div>
-            <div class="ai-quick-line">
-                Fastest: ${fastest ? fastest.id + ' ~ ' + fastest.value + ' ms' : '—'}
-            </div>
-            <div class="ai-quick-line">
-                Slowest: ${slowest ? slowest.id + ' ~ ' + slowest.value + ' ms' : '—'}
-            </div>
+        <div class="ai-quick-row">
+            <span class="ai-quick-label">Slowest avg</span>
+            <span class="ai-quick-value">${slowest ? slowest.id + ' ~ ' + slowest.value + ' ms' : '—'}</span>
         </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">Reliability</div>
-            <div class="ai-quick-line">
-                Best error rate: ${bestErr ? bestErr.id + ' ' + (bestErr.rate*100).toFixed(1) + '%' : '—'}
-            </div>
-            <div class="ai-quick-line">
-                Worst error rate: ${worstErr ? worstErr.id + ' ' + (worstErr.rate*100).toFixed(1) + '%' : '—'}
-            </div>
+        <div class="ai-quick-row">
+            <span class="ai-quick-label">Worst error rate</span>
+            <span class="ai-quick-value">${worstErr ? worstErr.id + ' ' + (worstErr.rate*100).toFixed(1) + '%' : '—'}</span>
         </div>
-        <div class="ai-quick-section">
-            <div class="ai-quick-title">AI Focus</div>
-            <div class="ai-quick-line">${hint}</div>
-            <div class="ai-quick-note">Use this pane as a quick scan; open tiles for drill-down.</div>
+        <div class="ai-quick-divider"></div>
+        <div class="ai-quick-row">
+            <span class="ai-quick-label">AI Hint</span>
+            <span class="ai-quick-tag">${hint}</span>
         </div>
     `;
 }

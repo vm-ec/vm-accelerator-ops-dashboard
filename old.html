@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ValueMomentum - Operational Health Dashboard</title>
+<style>
+    :root{
+        --bg:#f6f8fa;
+        --card:#ffffff;
+        --muted:#6b7280;
+        --accent:#0f6ebf;
+        --success:#0a8a46;
+        --danger:#d93232;
+        --light-success: #e6f7ec;
+        --light-danger: #ffecec;
+        --glass: rgba(255,255,255,0.6);
+        --shadow: 0 6px 18px rgba(15,30,40,0.06);
+        --radius:12px;
+        --glass-border: rgba(15,30,40,0.06);
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html,body{height:100%;margin:0;background:var(--bg);color:#111827}
+    .topbar{
+        background: linear-gradient(90deg,#0f6ebf 0%, #0b57a1 100%);
+        color:#fff;
+        padding:18px 24px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        box-shadow: 0 6px 18px rgba(11,87,161,0.18);
+    }
+    .brand{font-weight:700;font-size:20px;letter-spacing:0.2px;display:flex;align-items:center;gap:12px}
+    .brand svg{width:34px;height:34px;flex:0 0 34px}
+    .top-actions{display:flex;gap:12px;align-items:center}
+    .small{
+        font-size:13px;color:rgba(255,255,255,0.9)
+    }
+
+    .layout{
+        max-width:1300px;
+        margin:24px auto;
+        padding:0 18px 60px;
+    }
+
+    .meta{
+        display:flex;
+        gap:14px;
+        align-items:center;
+        margin:18px 0 22px;
+        flex-wrap:wrap;
+    }
+
+    .meta .pill{
+        background:var(--card);
+        padding:8px 12px;border-radius:999px;box-shadow:var(--shadow);font-weight:600;color:var(--muted);
+    }
+
+    .grid{
+        display:grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap:18px;
+    }
+
+    .card{
+        background:var(--card);
+        border-radius:var(--radius);
+        padding:16px;
+        box-shadow:var(--shadow);
+        transition: transform .18s ease, box-shadow .18s ease;
+        position:relative;
+        overflow:hidden;
+        min-height:150px;
+    }
+    .card:hover{ transform: translateY(-6px); box-shadow: 0 14px 40px rgba(15,30,40,0.09); }
+
+    .server-title{display:flex;align-items:center;gap:12px}
+    .server-title h3{margin:0;font-size:16px;color:#0f1724}
+    .tag{font-size:12px;padding:6px 8px;border-radius:8px;background:transparent;border:1px solid var(--glass-border);color:var(--muted)}
+
+    .status-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+    .badge{
+        display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-weight:700;
+        border:1px solid rgba(0,0,0,0.03);
+        box-shadow: 0 6px 18px rgba(2,6,23,0.03);
+        font-size:13px;
+    }
+    .badge.up{background:var(--light-success);color:var(--success);border-color: rgba(10,138,70,0.12)}
+    .badge.down{background:var(--light-danger);color:var(--danger);border-color: rgba(217,50,50,0.12)}
+
+    .metric-grid{
+        margin-top:14px;
+        display:grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap:10px;
+    }
+    .metric{
+        background: linear-gradient(180deg,#fff,#fbfdff);
+        border-radius:10px;padding:10px;font-size:13px;color:var(--muted);
+        display:flex;flex-direction:column;gap:6px;
+    }
+    .metric .num{font-weight:700;color:#111827;font-size:15px}
+    .progress{height:8px;background:#eef2f7;border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#4f46e5,#0f6ebf);width:40%}
+
+    .spark{
+        width:100%;height:40px;margin-top:8px;
+    }
+
+    .footer{
+        text-align:center;color:var(--muted);margin-top:20px;font-size:13px;
+    }
+
+    /* AI panel */
+    .ai-panel{
+        background:linear-gradient(180deg,#fff,#f8fafc);
+        padding:12px;border-radius:10px;box-shadow:var(--shadow);
+    }
+    .ai-title{display:flex;align-items:center;gap:10px;font-weight:700}
+    .ai-suggestion{margin-top:10px;font-size:13px;color:#0f1724}
+
+    /* actions */
+    .actions{display:flex;gap:8px;margin-top:10px}
+    .btn{
+        border:1px solid var(--glass-border);
+        background:transparent;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+        transition:transform .12s ease;
+    }
+    .btn:hover{transform:translateY(-3px)}
+    .btn.primary{background:linear-gradient(90deg,#0f6ebf,#0a57a0);color:#fff;border:none}
+
+    /* small helper */
+    .meta-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+    .muted{color:var(--muted)}
+    .timestamp{font-size:12px;color:var(--muted)}
+
+    /* responsive adjustments */
+    @media (max-width:640px){
+        .metric-grid{grid-template-columns: 1fr}
+    }
+
+    /* tooltip */
+    .hint{position:relative;display:inline-block}
+    .hint:hover::after{
+        content: attr(data-tip);
+        position:absolute;left:50%;transform:translateX(-50%);
+        bottom:calc(100% + 8px);
+        background:#111827;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px;white-space:nowrap;z-index:40;
+    }
+</style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="brand">
+            <!-- simple logo -->
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="48" height="48" rx="10" fill="#0f6ebf"/>
+                <path d="M12 32L24 16L36 32H12Z" fill="white"/>
+            </svg>
+            ValueMomentum — Operational Health Dashboard
+        </div>
+        <div class="top-actions">
+            <div class="small">Auto-refresh: <strong id="refresh-interval">10s</strong></div>
+            <div class="small timestamp" id="last-checked">Never</div>
+        </div>
+    </div>
+
+    <main class="layout">
+        <div class="meta">
+            <div class="pill">Environment: <strong style="margin-left:8px">Production</strong></div>
+            <div class="pill">Region: <strong style="margin-left:8px">us-east-1</strong></div>
+
+            <div class="meta-right">
+                <label class="hint" data-tip="Toggle display of AI hints">
+                    <input id="ai-toggle" type="checkbox" checked /> <span class="muted" style="margin-left:6px">AI Suggestions</span>
+                </label>
+                <div class="pill">Refresh Now: <button class="btn primary" id="btn-refresh">Run</button></div>
+            </div>
+        </div>
+
+        <section class="grid" id="server-grid">
+            <!-- server cards will be injected here -->
+        </section>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;margin-top:18px;">
+            <div class="card ai-panel" id="global-ai">
+                <div class="ai-title">AI Operations — Health Insights</div>
+                <div class="ai-suggestion" id="ai-summary">
+                    Collecting data... The dashboard will automatically surface anomalies and predicted risks here.
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+                    <button class="btn" id="btn-ai-run">Run Deep Analysis</button>
+                    <button class="btn" id="btn-ai-reset">Reset History</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-weight:700">Operational Quick Stats</div>
+                    <div class="muted">Live</div>
+                </div>
+                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div class="metric">
+                        <div style="font-size:13px;color:var(--muted)">Avg Response Time (all)</div>
+                        <div class="num" id="stat-avg">— ms</div>
+                        <div class="progress"><i id="stat-avg-bar" style="width:10%"></i></div>
+                    </div>
+                    <div class="metric">
+                        <div style="font-size:13px;color:var(--muted)">Systems UP</div>
+                        <div class="num" id="stat-upcount">— / —</div>
+                    </div>
+                    <div class="metric">
+                        <div style="font-size:13px;color:var(--muted)">Recent Errors (1m)</div>
+                        <div class="num" id="stat-errors">0</div>
+                    </div>
+                    <div class="metric">
+                        <div style="font-size:13px;color:var(--muted)">Predicted Risk</div>
+                        <div class="num" id="stat-risk">Low</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">Auto refreshing every 10 seconds • Powered by ValueMomentum</div>
+    </main>
+
+<script>
+/*
+  Dashboard logic:
+  - Reuses your same health endpoints (GET). For more metrics it tries to fetch an extra /metrics endpoint per service (non-breaking).
+  - Maintains lightweight history (last 20 checks) per service to draw tiny sparklines and detect anomalies.
+  - AI features are local heuristics:
+      * Detect response-time spikes vs rolling average
+      * Detect repeated DOWN events
+      * Provide human-friendly suggestions / probable root causes
+      * Predict "risk" HIGH/MED/LOW based on simple rules
+  - Everything is client-side; modify endpoints list below to add/remove services.
+*/
+
+// ---------- config ----------
+const SERVICES = [
+    { id: 'Policysubmission', name: 'Quote Submission', health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health', metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics' },
+    { id: 'Policymanager', name: 'Policy Administration', health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health', metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics' },
+    { id: 'Claims', name: 'Claims Management', health: 'https://vm-service-claims.onrender.com/claims/health', metrics: 'https://vm-service-claims.onrender.com/claims/metrics' },
+    { id: 'Claimsreview', name: 'Underwriting Risk assessment', health: 'https://vm-service-claims-review.onrender.com/claimsreview/health', metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics' },
+    { id: 'Claimsfraud', name: 'Rating', health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health', metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics' }
+];
+
+const REFRESH_INTERVAL = 10 * 1000; // 10s
+const HISTORY_LEN = 20; // keep last 20 response times
+
+// ---------- state ----------
+const state = {
+    services: {}, // per-service history and last known metrics
+    lastChecked: null,
+    errorsLastMinute: 0 // simulated
+};
+
+// initialize state entries
+SERVICES.forEach(s => state.services[s.id] = {
+    id: s.id, name: s.name, health: s.health, metrics: s.metrics,
+    history: [], // response times (ms) and status
+    lastStatus: 'UNKNOWN',
+    lastTS: null,
+    lastRespTime: null,
+    metricsPayload: null
+});
+
+// ---------- UI helpers ----------
+function el(html){
+    const div = document.createElement('div');
+    div.innerHTML = html.trim();
+    return div.firstChild;
+}
+
+function formatMs(ms){ return ms === null ? '—' : `${ms} ms`; }
+function nowTime(){ return new Date().toLocaleTimeString(); }
+
+// small inline sparkline using SVG polyline from numeric array
+function sparklineSvg(values){
+    if(!values || values.length === 0) return '';
+    const w = 160, h = 40, pad = 4;
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = max - min || 1;
+    const step = (w - pad*2) / (values.length - 1 || 1);
+    const points = values.map((v,i)=>{
+        const x = pad + i*step;
+        const y = pad + (1 - (v - min)/range) * (h - pad*2);
+        return `${x},${y}`;
+    }).join(' ');
+    // last value color
+    const last = values[values.length-1];
+    const stroke = (last > (min + range * 0.7)) ? '#d9534f' : '#0f6ebf';
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
+// create server card
+function createCard(s){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `card-${s.id}`;
+    card.innerHTML = `
+        <div class="server-title">
+            <h3>${s.name}</h3>
+            <div class="tag">${s.id}</div>
+        </div>
+        <div class="status-row">
+            <div class="badge hint up" id="${s.id}-badge">Checking...</div>
+            <div class="muted timestamp" id="${s.id}-ts">—</div>
+        </div>
+
+        <div class="metric-grid" style="margin-top:8px">
+            <div class="metric">
+                <div style="font-size:13px;color:var(--muted)">Response Time</div>
+                <div class="num" id="${s.id}-rt">—</div>
+                <div class="progress"><i id="${s.id}-rtbar" style="width:6%"></i></div>
+            </div>
+
+            <div class="metric">
+                <div style="font-size:13px;color:var(--muted)">CPU / Mem</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <div style="flex:1">
+                        <div style="font-size:13px;color:var(--muted)">CPU</div>
+                        <div class="progress"><i id="${s.id}-cpu" style="width:10%"></i></div>
+                    </div>
+                    <div style="flex:1">
+                        <div style="font-size:13px;color:var(--muted)">Mem</div>
+                        <div class="progress"><i id="${s.id}-mem" style="width:12%"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric">
+                <div style="font-size:13px;color:var(--muted)">Errors (1m)</div>
+                <div class="num" id="${s.id}-errors">0</div>
+            </div>
+
+            <div class="metric">
+                <div style="font-size:13px;color:var(--muted)">Version / Uptime</div>
+                <div class="num" id="${s.id}-meta">—</div>
+            </div>
+        </div>
+
+        <div id="${s.id}-spark" style="margin-top:10px"></div>
+
+        <div class="actions" style="margin-top:10px">
+            <button class="btn" data-id="${s.id}" onclick="openServiceLogs(event)">View Logs</button>
+            <button class="btn" data-id="${s.id}" onclick="runHealthCheckNow(event)">Run Check</button>
+            <button class="btn" data-id="${s.id}" onclick="showAiDetails(event)">AI Hints</button>
+        </div>
+    `;
+    return card;
+}
+
+// ---------- DOM init ----------
+const grid = document.getElementById('server-grid');
+SERVICES.forEach(s => grid.appendChild(createCard(s)));
+
+// ---------- metric fetch & update ----------
+async function fetchHealth(service){
+    const start = Date.now();
+    let status = 'DOWN';
+    let responseTime = null;
+    let payload = null;
+    try {
+        const res = await fetch(service.health, { method: 'GET', cache:'no-store' });
+        responseTime = Date.now() - start;
+        if (res.ok) {
+            status = 'UP';
+            // try to parse JSON if available
+            try{ payload = await res.json(); } catch(e){ payload = null; }
+        } else {
+            // if non-200, treat as DOWN but still capture response time
+            status = 'DOWN';
+        }
+    } catch(e){
+        status = 'DOWN';
+    }
+    return { status, responseTime, payload };
+}
+
+// optional/extra metrics endpoint (if exists)
+async function fetchMetrics(service){
+    try{
+        const res = await fetch(service.metrics, { method: 'GET', cache:'no-store' });
+        if(res.ok){
+            const json = await res.json();
+            return json;
+        }
+    }catch(e){}
+    return null;
+}
+
+// heuristic anomaly detection: checks for response time spikes and consecutive downs
+function analyzeServiceHistory(hist){
+    const arr = hist.map(h => h.time).filter(v => typeof v === 'number');
+    if(arr.length === 0) return { anomaly:false, reason:null, score:0 };
+    const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+    const last = arr[arr.length-1];
+    const spike = last > avg * 2.2; // arbitrary factor
+    const lastStatuses = hist.slice(-3).map(h => h.status);
+    const repeatedDown = lastStatuses.every(s => s === 'DOWN');
+    let score = 0;
+    if(spike) score += 40;
+    if(repeatedDown) score += 60;
+    let reason = null;
+    if(spike) reason = `Response time spike: last ${Math.round(last)}ms vs avg ${Math.round(avg)}ms`;
+    if(repeatedDown && reason) reason += '; repeated DOWN observed';
+    if(repeatedDown && !reason) reason = 'Multiple consecutive DOWN events';
+    return { anomaly: spike || repeatedDown, reason, score };
+}
+
+// produce human-friendly AI suggestions based on patterns
+function aiHintFor(serviceState){
+    const hist = serviceState.history;
+    const analysis = analyzeServiceHistory(hist);
+    if(!analysis.anomaly) return { level:'Low', text:'No anomalies detected. Performance within expected range.', actions:[] };
+    const actions = [];
+    if(analysis.reason && analysis.reason.includes('Response time spike')){
+        actions.push('Investigate recent deployments or increased traffic for the endpoint.');
+        actions.push('Check DB connection pool exhaustion and slow queries.');
+    }
+    if(analysis.reason && analysis.reason.includes('DOWN')){
+        actions.push('Collect recent error logs and stack traces.');
+        actions.push('Check network ACLs and load balancer health checks.');
+    }
+    const level = analysis.score > 70 ? 'High' : (analysis.score > 40 ? 'Medium' : 'Elevated');
+    return { level, text: analysis.reason, actions };
+}
+
+// update one service card from fetched values
+function updateCardFromState(sid){
+    const s = state.services[sid];
+    const badge = document.getElementById(`${sid}-badge`);
+    const ts = document.getElementById(`${sid}-ts`);
+    const rtEl = document.getElementById(`${sid}-rt`);
+    const rtbar = document.getElementById(`${sid}-rtbar`);
+    const cpu = document.getElementById(`${sid}-cpu`);
+    const mem = document.getElementById(`${sid}-mem`);
+    const errorsEl = document.getElementById(`${sid}-errors`);
+    const metaEl = document.getElementById(`${sid}-meta`);
+    const sparkEl = document.getElementById(`${sid}-spark`);
+
+    // status badge
+    if(s.lastStatus === 'UP'){
+        badge.classList.remove('down'); badge.classList.add('up');
+        badge.textContent = `UP • ${s.lastRespTime ? s.lastRespTime+'ms' : ''}`;
+    } else if(s.lastStatus === 'DOWN'){
+        badge.classList.remove('up'); badge.classList.add('down');
+        badge.textContent = 'DOWN';
+    } else {
+        badge.classList.remove('up','down');
+        badge.textContent = 'Checking...';
+    }
+
+    ts.textContent = `Last: ${s.lastTS ? s.lastTS : '—'}`;
+
+    rtEl.textContent = s.lastRespTime ? `${s.lastRespTime} ms` : '—';
+    rtbar.style.width = (s.lastRespTime ? Math.min(100, Math.round(s.lastRespTime / 10)) : 6) + '%';
+
+    // metrics payload if available, else show simulated placeholders
+    let cpuVal = s.metricsPayload && s.metricsPayload.cpu ? s.metricsPayload.cpu : Math.round(Math.random() * 40 + 10);
+    let memVal = s.metricsPayload && s.metricsPayload.mem ? s.metricsPayload.mem : Math.round(Math.random() * 50 + 20);
+    cpu.style.width = Math.min(100, cpuVal) + '%';
+    mem.style.width = Math.min(100, memVal) + '%';
+
+    const lastErrors = s.history.slice(-6).filter(h=>h.status !== 'UP').length;
+    errorsEl.textContent = lastErrors;
+
+    // metadata
+    const ver = s.metricsPayload && s.metricsPayload.version ? s.metricsPayload.version : 'v1.0.0';
+    const uptime = s.metricsPayload && s.metricsPayload.uptime ? s.metricsPayload.uptime : `${Math.round(Math.random()*10)}d`;
+    metaEl.textContent = `${ver} • ${uptime}`;
+
+    // sparkline from last response times
+    const rtValues = s.history.map(h => (h.time || 0));
+    sparkEl.innerHTML = sparklineSvg(rtValues.slice(-HISTORY_LEN));
+
+    // add subtle card background color for down
+    const card = document.getElementById(`card-${sid}`);
+    if(s.lastStatus === 'DOWN'){
+        card.style.background = 'linear-gradient(180deg,var(--light-danger), #fff)';
+    } else {
+        card.style.background = 'linear-gradient(180deg,#fff,#fbfdff)';
+    }
+}
+
+// main refresh loop: fetch each health and metrics, update state
+async function checkAll(){
+    const checks = Object.values(state.services).map(async s => {
+        const result = await fetchHealth(s);
+        s.lastStatus = result.status;
+        s.lastRespTime = result.responseTime;
+        s.lastTS = nowTime();
+        // push into history
+        s.history.push({ time: result.responseTime, status: result.status, ts: Date.now() });
+        if(s.history.length > HISTORY_LEN) s.history.shift();
+
+        // try metrics endpoint
+        const metrics = await fetchMetrics(s);
+        if(metrics) s.metricsPayload = metrics;
+
+        // update DOM
+        updateCardFromState(s.id);
+
+        return s;
+    });
+
+    const all = await Promise.all(checks);
+    state.lastChecked = new Date();
+    document.getElementById('last-checked').textContent = `Last: ${state.lastChecked.toLocaleTimeString()}`;
+
+    // update global quick stats
+    const respTimes = all.map(s => s.lastRespTime).filter(v=>typeof v === 'number');
+    const avg = respTimes.length ? Math.round(respTimes.reduce((a,b)=>a+b,0)/respTimes.length) : null;
+    const upCount = all.filter(s => s.lastStatus === 'UP').length;
+    document.getElementById('stat-avg').textContent = avg ? `${avg} ms` : '—';
+    document.getElementById('stat-avg-bar').style.width = avg ? Math.min(100, Math.round(avg / 10)) + '%' : '6%';
+    document.getElementById('stat-upcount').textContent = `${upCount} / ${all.length}`;
+
+    // simple error counter in last minute (simulate from history)
+    const now = Date.now();
+    const errors = all.reduce((acc, s) => acc + s.history.filter(h => (now - h.ts) < 60*1000 && h.status !== 'UP').length, 0);
+    document.getElementById('stat-errors').textContent = errors;
+
+    // global AI summary compute risk: proportion of services with anomalies
+    let anomalyCount = 0;
+    const details = all.map(s=>{
+        const analysis = analyzeServiceHistory(s.history);
+        if(analysis.anomaly) anomalyCount++;
+        return { id:s.id, analysis };
+    });
+
+    let risk = 'Low';
+    if(anomalyCount >= Math.ceil(all.length * 0.6)) risk = 'High';
+    else if(anomalyCount >= Math.ceil(all.length * 0.3)) risk = 'Medium';
+    document.getElementById('stat-risk').textContent = risk;
+
+    // AI summary text
+    const aiToggle = document.getElementById('ai-toggle').checked;
+    const aiSummaryEl = document.getElementById('ai-summary');
+    if(!aiToggle){
+        aiSummaryEl.textContent = 'AI Suggestions are turned off.';
+    } else {
+        if(anomalyCount === 0){
+            aiSummaryEl.textContent = 'All systems are within normal parameters. No immediate action required.';
+        } else {
+            const top = details.filter(d => d.analysis.anomaly).slice(0,3);
+            const lines = top.map(t => `${t.id}: ${t.analysis.reason}`).join('  •  ');
+            aiSummaryEl.innerHTML = `<strong>${anomalyCount} service(s) flagged</strong> — ${lines}. Click "Run Deep Analysis" for more suggestions.`;
+        }
+    }
+}
+
+// small handlers for action buttons (placeholders)
+function openServiceLogs(e){
+    const id = e.currentTarget.dataset.id;
+    alert(`Open logs for ${id} (implement your log viewer / link here).`);
+}
+function runHealthCheckNow(e){
+    const id = e.currentTarget.dataset.id;
+    const service = state.services[id];
+    // do a single fetch for that service
+    (async ()=>{
+        const res = await fetchHealth(service);
+        service.lastStatus = res.status;
+        service.lastRespTime = res.responseTime;
+        service.lastTS = nowTime();
+        service.history.push({ time: res.responseTime, status: res.status, ts: Date.now() });
+        if(service.history.length > HISTORY_LEN) service.history.shift();
+        updateCardFromState(id);
+    })();
+}
+function showAiDetails(e){
+    const id = e.currentTarget.dataset.id;
+    const s = state.services[id];
+    const hint = aiHintFor(s);
+    const msg = `AI Hints for ${id}\nRisk: ${hint.level}\nReason: ${hint.text}\nSuggested actions:\n - ${hint.actions.join('\n - ')}`;
+    alert(msg);
+}
+
+// manual global AI run
+document.getElementById('btn-ai-run').addEventListener('click', ()=>{
+    // run quick suggestions and show modal (simple alert for now)
+    const anomalies = Object.values(state.services).map(s => ({ id:s.id, analysis: analyzeServiceHistory(s.history) })).filter(x=>x.analysis.anomaly);
+    if(anomalies.length === 0) alert('AI Deep Analysis: No anomalies detected.');
+    else {
+        const lines = anomalies.map(a => `${a.id}: ${a.analysis.reason}`).join('\n');
+        alert(`AI Deep Analysis: ${anomalies.length} issue(s) found:\n\n${lines}\n\nRecommended: run logs collection and prioritize the highest-risk services.`);
+    }
+});
+
+// reset history
+document.getElementById('btn-ai-reset').addEventListener('click', ()=>{
+    Object.values(state.services).forEach(s => s.history = []);
+    alert('History cleared; monitoring starts fresh.');
+});
+
+// refresh now button
+document.getElementById('btn-refresh').addEventListener('click', ()=>checkAll());
+
+// expose these for button onclick attributes
+window.openServiceLogs = openServiceLogs;
+window.runHealthCheckNow = runHealthCheckNow;
+window.showAiDetails = showAiDetails;
+
+// initial render and schedule
+checkAll();
+setInterval(checkAll, REFRESH_INTERVAL);
+
+// set refresh interval label
+document.getElementById('refresh-interval').textContent = `${REFRESH_INTERVAL/1000}s`;
+
+</script>
+</body>
+</html>
