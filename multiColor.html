@@ -6,10 +6,10 @@
 <title>ValueMomentum - Operational Health Dashboard</title>
 <style>
     :root{
-        --bg:#fcfdfe;
+        --bg:#f6f8fa;
         --card:#ffffff;
         --muted:#6b7280;
-        --accent:#3a78ab;
+        --accent:#0f6ebf;
         --success:#16a34a;
         --warning:#eab308;
         --danger:#dc2626;
@@ -26,7 +26,7 @@
     }
 
     .topbar{
-        background:linear-gradient(90deg,#0c589b 0%,#0c2d4f 100%);
+        background:linear-gradient(90deg,#0f6ebf 0%,#0b57a1 100%);
         color:#fff;
         padding:16px 20px;
         display:flex;
@@ -672,11 +672,11 @@ const REFRESH_INTERVAL = 10 * 1000; // 10s
 // 5 visual categories (columns with tiles)
 // We'll map them to your domain lists
 const CATEGORIES = [
-    { id:'policy',  title:'Policy Services',  subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
+    { id:'policy',  title:'Policy Services',  subtitle:'Rating, rules, quotes, lifecycle', bg:'#fef3c7' },
     { id:'billing', title:'Billing Services', subtitle:'Accounts, invoices, payments',     bg:'#e0f2fe' },
-    { id:'claims',  title:'Claims Services',  subtitle:'FNOL, fraud, settlement',         bg:'#e0f2fe' },
-    { id:'rating',  title:'Product & Filings',subtitle:'Rates, forms, pricing versions',  bg:'#e0f2fe' },
-    { id:'shared',  title:'Shared Services',  subtitle:'Enterprise & platform services',  bg:'#e0f2fe' }
+    { id:'claims',  title:'Claims Services',  subtitle:'FNOL, fraud, settlement',         bg:'#ecfdf3' },
+    { id:'rating',  title:'Product & Filings',subtitle:'Rates, forms, pricing versions',  bg:'#f5f3ff' },
+    { id:'shared',  title:'Shared Services',  subtitle:'Enterprise & platform services',  bg:'#fee2e2' }
 ];
 
 // Map each visual category to ONE backend API to ping

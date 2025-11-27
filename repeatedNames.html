@@ -6,10 +6,10 @@
 <title>ValueMomentum - Operational Health Dashboard</title>
 <style>
     :root{
-        --bg:#fcfdfe;
+        --bg:#f6f8fa;
         --card:#ffffff;
         --muted:#6b7280;
-        --accent:#3a78ab;
+        --accent:#0f6ebf;
         --success:#16a34a;
         --warning:#eab308;
         --danger:#dc2626;
@@ -26,7 +26,7 @@
     }
 
     .topbar{
-        background:linear-gradient(90deg,#0c589b 0%,#0c2d4f 100%);
+        background:linear-gradient(90deg,#0f6ebf 0%,#0b57a1 100%);
         color:#fff;
         padding:16px 20px;
         display:flex;
@@ -287,7 +287,7 @@
     }
     .modal-subtitle{
         font-size:12px;
-        color:#6b7280;
+        color:var(--muted);
     }
     .modal-close{
         border:none;
@@ -475,6 +475,15 @@
         color:#4b5563;
         margin-top:2px;
     }
+    .ai-quick-pill{
+        display:inline-block;
+        padding:2px 6px;
+        border-radius:999px;
+        font-size:10px;
+        background:#e5e7eb;
+        color:#374151;
+        margin-top:2px;
+    }
 </style>
 </head>
 <body>
@@ -621,10 +630,8 @@
         <div class="modal-section-title">Actions</div>
         <div class="modal-actions">
             <button class="btn primary" id="modal-btn-deep-check">Run Deep Health Check</button>
-            <button class="btn" id="modal-btn-logs">Request Cause Analysis</button>
-            <button class="btn" id="modal-btn-json">Knowledge Exploring</button>
-			<button class="btn" id="modal-btn-job">Jobs Health Status</button>
-			
+            <button class="btn" id="modal-btn-logs">View Logs</button>
+            <button class="btn" id="modal-btn-json">View Raw Metrics JSON</button>
         </div>
     </div>
 </div>
@@ -632,35 +639,65 @@
 <script>
 // -------- CONFIG --------
 
-// Backend APIs (same 5 actual services)
+// IDs: 1 word; Names: exactly 2 words
 const SERVICES = [
     {
-        id: 'PolicyCore',
-        name: 'Policy Core',
+        id: '1',
+        name: 'Policy Admin',
         health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
         metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
     },
     {
-        id: 'PolicyEdge',
-        name: 'Policy Edge',
+        id: '2',
+        name: 'Quote Generation',
         health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
         metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
     },
     {
-        id: 'ClaimsCore',
-        name: 'Claims Core',
+        id: '3',
+        name: 'Claims Submission',
         health: 'https://vm-service-claims.onrender.com/claims/health',
         metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
     },
     {
-        id: 'ClaimsReview',
-        name: 'Claims Review',
+        id: '4',
+        name: 'Underwriting',
         health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
         metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
     },
     {
-        id: 'FraudCheck',
-        name: 'Fraud Check',
+        id: '5',
+        name: 'Rating',
+        health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
+        metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
+    },
+	{
+        id: '6',
+        name: 'Appetite Check',
+        health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
+        metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
+    },
+    {
+        id: '7',
+        name: 'Claims FraudCheck',
+        health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
+        metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
+    },
+    {
+        id: '8',
+        name: 'Claims Approval',
+        health: 'https://vm-service-claims.onrender.com/claims/health',
+        metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
+    },
+    {
+        id: '9',
+        name: 'Forms Management',
+        health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
+        metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
+    },
+    {
+        id: '10',
+        name: 'Forms Review',
         health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
         metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
     }
@@ -669,110 +706,27 @@ const SERVICES = [
 const TOTAL_TILES = 100;
 const REFRESH_INTERVAL = 10 * 1000; // 10s
 
-// 5 visual categories (columns with tiles)
-// We'll map them to your domain lists
+// 5 categories (6th column used for AI quick report)
 const CATEGORIES = [
-    { id:'policy',  title:'Policy Services',  subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
-    { id:'billing', title:'Billing Services', subtitle:'Accounts, invoices, payments',     bg:'#e0f2fe' },
-    { id:'claims',  title:'Claims Services',  subtitle:'FNOL, fraud, settlement',         bg:'#e0f2fe' },
-    { id:'rating',  title:'Product & Filings',subtitle:'Rates, forms, pricing versions',  bg:'#e0f2fe' },
-    { id:'shared',  title:'Shared Services',  subtitle:'Enterprise & platform services',  bg:'#e0f2fe' }
+    { id:'policy',  title:'Policy Services',  subtitle:'Core & edge policy APIs',   bg:'#fef3c7' },
+    { id:'claims',  title:'Claims Services',  subtitle:'FNOL & adjudication',       bg:'#e0f2fe' },
+    { id:'billing', title:'Billing Services', subtitle:'Billing & invoicing view',  bg:'#ecfdf3' },
+    { id:'rating',  title:'Rating Services',  subtitle:'Rates & pricing checks',    bg:'#f5f3ff' },
+    { id:'shared',  title:'Shared Services',  subtitle:'Shared / cross-cutting',    bg:'#fee2e2' }
 ];
 
-// Map each visual category to ONE backend API to ping
-const CATEGORY_SERVICE_MAP = {
-    policy:  'PolicyCore',
-    billing: 'PolicyEdge',
-    claims:  'ClaimsCore',
-    rating:  'ClaimsReview',
-    shared:  'FraudCheck'
-};
-
-// Your microservice names per domain (10 each)
-const MICROSERVICES = {
-    // 1. Policy
-    policy: [
-        { name: 'Rating Service',                 shortId: '1' },
-        { name: 'Underwriting Rules Service',     shortId: '2' },
-        { name: 'Quote Service',                  shortId: '3' },
-        { name: 'Policy Issuance Service',        shortId: '4' },
-        { name: 'Policy Lifecycle Service',       shortId: '5' },
-        { name: 'Coverage Service',               shortId: '6' },
-        { name: 'Risk Profile Service',           shortId: '7' },
-        { name: 'Policy Document Service',        shortId: '8' },
-        { name: 'Policy Search Service',          shortId: '9' },
-        { name: 'Product Configuration Service',  shortId: '10' }
-    ],
-
-    // 2. Billing
-    billing: [
-        { name: 'Billing Account Service',        shortId: '1' },
-        { name: 'Invoice Generation Service',     shortId: '2' },
-        { name: 'Payment Processing Service',     shortId: '3' },
-        { name: 'Payment Allocation Service',     shortId: '4' },
-        { name: 'Refund Chargeback Service',      shortId: '5' },
-        { name: 'Collections Dunning Service',    shortId: '6' },
-        { name: 'Premium Finance Service',        shortId: '7' },
-        { name: 'Recurring Payments Service',     shortId: '8' },
-        { name: 'Billing History Service',        shortId: '9' },
-        { name: 'Reconciliation Service',         shortId: '10' }
-    ],
-
-    // 3. Claims
-    claims: [
-        { name: 'FNOL Service',                   shortId: '1' },
-        { name: 'Adjuster Assignment Service',    shortId: '2' },
-        { name: 'Claim Investigation Service',    shortId: '3' },
-        { name: 'Fraud Check Service',           shortId: '4' },
-        { name: 'Damage Estimation Service',      shortId: '5' },
-        { name: 'Coverage Validation Service',    shortId: '6' },
-        { name: 'Third-party Integration Service',shortId: '7' },
-        { name: 'Claim Payments Service',         shortId: '8' },
-        { name: 'Subrogation Service',            shortId: '9' },
-        { name: 'Claim Settlement Service',       shortId: '10' }
-    ],
-
-    // 5. Product Configuration & Filings → used in "rating" column
-    rating: [
-        { name: 'Product Master Service',         shortId: '1' },
-        { name: 'Coverage Catalogue Service',     shortId: '2' },
-        { name: 'Rate Table Service',             shortId: '3' },
-        { name: 'Form Mapping Service',           shortId: '4' },
-        { name: 'Discount Surcharge Service',     shortId: '5' },
-        { name: 'Regulatory Validation Service',  shortId: '6' },
-        { name: 'Approval Workflow Service',      shortId: '7' },
-        { name: 'Pricing Versioning Service',     shortId: '8' },
-        { name: 'Channel Eligibility Service',    shortId: '9' },
-        { name: 'Sandbox Simulation Service',     shortId: '10' }
-    ],
-
-    // 7. Shared Enterprise Services → used in "shared" column
-    shared: [
-        { name: 'Identity Auth Service',          shortId: '1' },
-        { name: 'Document Storage Service',       shortId: '2' },
-        { name: 'Notification Service',           shortId: '3' },
-        { name: 'Audit Trace Service',            shortId: '4' },
-        { name: 'Search Indexing Service',        shortId: '5' },
-        { name: 'Event Stream Service',           shortId: '6' },
-        { name: 'Data Privacy Service',           shortId: '7' },
-        { name: 'Telemetry Observability Service',shortId: '8' },
-        { name: 'Workflow Orchestration Service', shortId: '9' },
-        { name: 'AI Decisioning Service',         shortId: '10' }
-    ]
-};
-
-// Map services to logical business category for AI bottom section
+// Map services to logical category for AI insights
 const SERVICE_CATEGORY = {
-    PolicyCore:  'Policy',
-    PolicyEdge:  'Billing',
-    ClaimsCore:  'Claims',
-    ClaimsReview:'Product & Filings',
-    FraudCheck:  'Shared'
+    PolicyCore: 'Policy',
+    PolicyEdge: 'Policy',
+    ClaimsCore: 'Claims',
+    ClaimsReview: 'Claims',
+    FraudCheck: 'Rating'
 };
 
 // -------- STATE --------
 const tileMetaList = []; // { tileId, serviceId }
-const serviceState = {}; // per backend service aggregated state
+const serviceState = {}; // per service aggregated state
 
 SERVICES.forEach(s=>{
     serviceState[s.id] = {
@@ -823,7 +777,6 @@ const modalErrorRate = document.getElementById('modal-error-rate');
 const modalErrorNote = document.getElementById('modal-error-note');
 const modalBtnLogs = document.getElementById('modal-btn-logs');
 const modalBtnDeepCheck = document.getElementById('modal-btn-deep-check');
-const modalBtnJobMonitoring = document.getElementById('modal-btn-job');
 const modalBtnJson = document.getElementById('modal-btn-json');
 const modalRtChart = document.getElementById('modal-rt-chart');
 
@@ -871,6 +824,8 @@ function computeP95(arr){
 
 // -------- BUILD COLUMNS & TILES --------
 (function buildCategorisedTiles(){
+    let globalTileIndex = 0;
+
     // 5 tile columns
     CATEGORIES.forEach((cat) => {
         const col = document.createElement('div');
@@ -884,23 +839,22 @@ function computeP95(arr){
         `;
 
         const innerGrid = col.querySelector('.category-inner-grid');
-        const msList = MICROSERVICES[cat.id] || [];
-        const backendServiceId = CATEGORY_SERVICE_MAP[cat.id] || SERVICES[0].id;
 
-        // 20 tiles per category (2 tiles per microservice name)
+        // 20 tiles per category
         for(let i = 0; i < 20; i++){
             const tileId = `tile-${cat.id}-${i+1}`;
-            const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:'Svc' };
+            const serviceIndex = globalTileIndex % SERVICES.length;
+            const service = SERVICES[serviceIndex];
 
             const tile = document.createElement('div');
             tile.className = 'tile';
             tile.id = tileId;
-            tile.dataset.serviceId = backendServiceId;
+            tile.dataset.serviceId = service.id;
 
             tile.innerHTML = `
                 <div class="tile-top">
-                    <div class="tile-name">${ms.name}</div>
-                    <div class="tile-id">${ms.shortId}</div>
+                    <div class="tile-name">${service.name}</div>
+                    <div class="tile-id">${service.id}</div>
                 </div>
                 <div class="tile-bottom">
                     <span class="tile-status-text">
@@ -915,11 +869,12 @@ function computeP95(arr){
             `;
 
             tile.addEventListener('click', () => {
-                openModalForService(backendServiceId);
+                openModalForService(service.id);
             });
 
             innerGrid.appendChild(tile);
-            tileMetaList.push({ tileId, serviceId: backendServiceId });
+            tileMetaList.push({ tileId, serviceId: service.id });
+            globalTileIndex++;
         }
 
         categoryGridEl.appendChild(col);
@@ -949,6 +904,7 @@ function computeP95(arr){
 async function fetchHealth(service){
     const start = performance.now();
     let status = 'DOWN';
+    let statusLabel = 'Down';
     let stateClass = 'down';
     let httpCode = 'ERR';
     let responseTime = null;
@@ -962,23 +918,27 @@ async function fetchHealth(service){
         if(res.ok){
             if(duration <= 800){
                 status = 'UP';
+                statusLabel = 'Running';
                 stateClass = 'up';
             } else {
                 status = 'DEGRADED';
+                statusLabel = 'Not certain';
                 stateClass = 'degraded';
             }
         } else {
             status = 'DOWN';
+            statusLabel = 'Down';
             stateClass = 'down';
         }
     } catch(e){
         status = 'DOWN';
+        statusLabel = 'Down';
         stateClass = 'down';
         httpCode = 'ERR';
         responseTime = null;
     }
 
-    return { status, stateClass, httpCode, responseTime };
+    return { status, statusLabel, stateClass, httpCode, responseTime };
 }
 
 async function fetchMetrics(service){
@@ -1088,7 +1048,7 @@ async function refreshAll(){
     }
 }
 
-// -------- AI INSIGHTS (bottom) --------
+// -------- AI INSIGHTS (bottom, richer) --------
 function updateAIInsights(allStates){
     if(!allStates || !allStates.length){
         aiBody.textContent = 'No metrics yet. Waiting for first successful poll.';
@@ -1125,6 +1085,7 @@ function updateAIInsights(allStates){
         else if(level === 'MEDIUM') mediumRisk.push(descriptor);
     });
 
+    // derive overall risk again (shared with snapshot)
     let overall = 'Low';
     let pillBg = '#dcfce7';
     let pillColor = '#166534';
@@ -1141,6 +1102,7 @@ function updateAIInsights(allStates){
     aiRiskPill.style.background = pillBg;
     aiRiskPill.style.color = pillColor;
 
+    // category impact
     const categoryImpact = {};
     allStates.forEach(s => {
         const cat = SERVICE_CATEGORY[s.info.id] || 'Other';
@@ -1149,6 +1111,7 @@ function updateAIInsights(allStates){
         if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
     });
 
+    // short-term risk forecast
     let forecastLabel = 'Low';
     if(highRisk.length >= 2 || (highRisk.length === 1 && mediumRisk.length >= 2)){
         forecastLabel = 'High';
@@ -1159,8 +1122,9 @@ function updateAIInsights(allStates){
     let html = '';
 
     html += `<div class="ai-section-title">Summary</div>`;
-    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> backend service clusters mapped to policy, billing, claims, product configuration and shared enterprise services.</p>`;
+    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> backend services across policy, claims, billing, rating and shared domains.</p>`;
 
+    // Category impact
     html += `<div class="ai-section-title">Domain impact</div>`;
     html += `<ul class="ai-list">`;
     Object.keys(categoryImpact).forEach(cat=>{
@@ -1173,6 +1137,7 @@ function updateAIInsights(allStates){
     });
     html += `</ul>`;
 
+    // High-risk services
     html += `<div class="ai-section-title">High-risk services (likely incidents)</div>`;
     if(!highRisk.length){
         html += `<p>No services are currently classified as high risk.</p>`;
@@ -1189,6 +1154,7 @@ function updateAIInsights(allStates){
         html += `</ul>`;
     }
 
+    // Degradation trends
     const trendingSlow = allStates.filter(s => (s.avgResponseTime || 0) > 1500);
     const trendingErrors = allStates.filter(s => {
         const err = s.count4xx + s.count5xx;
@@ -1218,28 +1184,30 @@ function updateAIInsights(allStates){
         }
     }
 
+    // Short-term forecast
     html += `<div class="ai-section-title">Short-term risk forecast (next 30–60 min)</div>`;
     if(forecastLabel === 'High'){
-        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, primarily in domains already showing non-UP status.</p>`;
+        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, especially in domains currently marked as high risk.</p>`;
     } else if(forecastLabel === 'Medium'){
-        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation for services shown as degraded or with elevated error rates.</p>`;
+        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation in services listed as high or medium risk.</p>`;
     } else {
-        html += `<p>Signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic and batch processing windows.</p>`;
+        html += `<p>Current signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic windows.</p>`;
     }
 
+    // Recommended actions
     html += `<div class="ai-section-title">Recommended next actions</div>`;
     const actions = [];
 
     if(highRisk.length || trendingErrors.length){
-        actions.push('Prioritise log and metric review for high-risk clusters (HTTP 5xx, timeouts, connection resets).');
-        actions.push('Verify downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
+        actions.push('Prioritise log and metric review for high-risk services (HTTP 5xx, timeouts, connection resets).');
+        actions.push('Validate downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
     }
     if(trendingSlow.length){
-        actions.push('Profile slow endpoints: inspect DB plans, cache hit ratios and pool saturation for affected domains.');
-        actions.push('Review instance/pod resource utilisation and autoscaling thresholds, especially for policy and claims paths.');
+        actions.push('Profile slow endpoints: inspect DB query plans, cache hit ratios and pool saturation for affected services.');
+        actions.push('Review instance/pod resource usage (CPU, memory, GC pauses) and consider scaling out if consistently elevated.');
     }
     if(!actions.length){
-        actions.push('Maintain monitoring; no urgent remediation needed. Re-check during core business hours and critical batch jobs.');
+        actions.push('Maintain monitoring; no urgent remediation needed. Re-check during core business and batch-processing windows.');
     }
 
     html += `<ul class="ai-list">`;
@@ -1251,7 +1219,7 @@ function updateAIInsights(allStates){
     aiBody.innerHTML = html;
 }
 
-// -------- AI QUICK COLUMN (compact snapshot) --------
+// -------- AI QUICK COLUMN (compact, row-based snapshot) --------
 function updateAIQuick(allStates){
     if(!aiQuickBodyEl) return;
 
@@ -1269,6 +1237,7 @@ function updateAIQuick(allStates){
     const degraded = allStates.filter(s => s.lastStatus === 'DEGRADED').length;
     const down = allStates.filter(s => s.lastStatus === 'DOWN').length;
 
+    // Slowest & fastest based on avg or last
     let slowest = null;
     let fastest = null;
     allStates.forEach(s=>{
@@ -1283,6 +1252,7 @@ function updateAIQuick(allStates){
         }
     });
 
+    // highest & lowest error rate
     let worstErr = null;
     let bestErr = null;
     allStates.forEach(s=>{
@@ -1298,6 +1268,7 @@ function updateAIQuick(allStates){
         }
     });
 
+    // quick risk level for snapshot
     let overall = 'Low';
     if(down > 0 || (worstErr && worstErr.rate > 0.15) || (slowest && slowest.value > 2000)){
         overall = 'High';
@@ -1305,6 +1276,7 @@ function updateAIQuick(allStates){
         overall = 'Medium';
     }
 
+    // simple hint text
     let hint = 'Landscape stable.';
     if(down > 0){
         hint = `${down} service(s) down — check incidents.`;
@@ -1341,7 +1313,7 @@ function updateAIQuick(allStates){
         <div class="ai-quick-section">
             <div class="ai-quick-title">AI Focus</div>
             <div class="ai-quick-line">${hint}</div>
-            <div class="ai-quick-note">Use this pane as a quick scan; click tiles to drill into a specific microservice cluster.</div>
+            <div class="ai-quick-note">Use this pane as a quick scan; open tiles for drill-down.</div>
         </div>
     `;
 }
@@ -1457,13 +1429,12 @@ document.addEventListener('keydown', (e)=>{
 // modal buttons
 modalBtnLogs.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-	const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
-    window.open(url, '_blank');
+    alert(`Logs view placeholder.\nWire this to your log platform for service: ${currentModalServiceId}.`);
 });
 modalBtnDeepCheck.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-	const url = 'http://20.172.162.208:8502?app=MyApp&env=prod';
-    window.open(url, '_blank');
+    const s = serviceState[currentModalServiceId];
+    alert(`Running deep health check (conceptual) for ${currentModalServiceId}.\n\nSuggested sequence:\n• Synthetic endpoint probe\n• Dependency checks (DB, queues, external APIs)\n• Cache / circuit-breaker status\n• Compare new latency vs historical p95\n\nLast observed status: ${s.lastStatus}`);
 });
 modalBtnJson.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
@@ -1471,11 +1442,7 @@ modalBtnJson.addEventListener('click', ()=>{
     const json = s.lastMetricsJson ? JSON.stringify(s.lastMetricsJson, null, 2) : 'No /metrics payload captured yet.';
     alert(json);
 });
-modalBtnJobMonitoring.addEventListener('click', ()=>{
-    if(!currentModalServiceId) return;
-    const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
-    window.open(url, '_blank');
-});
+
 // -------- START LOOP --------
 refreshAll();
 setInterval(refreshAll, REFRESH_INTERVAL);
