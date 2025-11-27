@@ -1,61 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ValueMomentum - Operational Health Dashboard</title>
+<style>
+    :root{
+        --bg:#fcfdfe;
+        --card:#ffffff;
+        --muted:#6b7280;
+        --accent:#3a78ab;
+        --success:#16a34a;
+        --warning:#eab308;
+        --danger:#dc2626;
+        --shadow:0 6px 18px rgba(15,30,40,0.06);
+        --radius:10px;
+        font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+    html,body{
+        height:100%;
+        margin:0;
+        background:var(--bg);
+        color:#111827;
+    }
+
+    .topbar{
+        background:linear-gradient(90deg,#0c589b 0%,#0c2d4f 100%);
+        color:#fff;
+        padding:16px 20px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        box-shadow:0 6px 18px rgba(11,87,161,0.18);
+    }
+    .brand{
+        font-weight:700;
+        font-size:18px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+    }
+    .brand svg{width:32px;height:32px;flex:0 0 32px;}
+    .top-actions{
+        display:flex;
+        gap:12px;
+        align-items:center;
+        font-size:13px;
+    }
+    .top-actions strong{font-weight:600;}
+
+    .layout{
+        max-width:1300px;
+        margin:20px auto 40px;
+        padding:0 16px;
+    }
+
+    .meta{
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+        align-items:center;
+        margin-bottom:16px;
+    }
+    .pill{
+        background:var(--card);
+        padding:6px 10px;
+        border-radius:999px;
+        box-shadow:var(--shadow);
+        font-size:13px;
+        color:var(--muted);
+        display:flex;
+        align-items:center;
+        gap:4px;
+    }
+    .meta-right{
+        margin-left:auto;
+        display:flex;
+        gap:10px;
+        align-items:center;
+        font-size:13px;
+        color:var(--muted);
+    }
+
+    /* CATEGORY GRID (5 tile columns + 1 AI column = 6) */
+    .tile-wrapper-card{
+        background:var(--card);
+        border-radius:14px;
+        box-shadow:var(--shadow);
+        padding:14px;
+    }
+
+    .category-grid{
+        display:grid;
+        grid-template-columns:repeat(6,minmax(0,1fr));
+        gap:10px;
+        align-items:start;
+    }
+    @media (max-width:1100px){
+        .category-grid{
+            grid-template-columns:repeat(3,minmax(0,1fr));
+        }
+    }
+    @media (max-width:800px){
+        .category-grid{
+            grid-template-columns:repeat(2,minmax(0,1fr));
+        }
+    }
+    @media (max-width:600px){
+        .category-grid{
+            grid-template-columns:1fr;
+        }
+    }
+
+    .category-column{
+        border-radius:12px;
+        padding:8px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+    }
+    .category-header{
+        font-size:12px;
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:0.08em;
+        color:#111827;
+        padding-bottom:4px;
+        border-bottom:1px dashed rgba(15,23,42,0.2);
+        margin-bottom:2px;
+    }
+
+    .category-subtitle{
+        font-size:11px;
+        color:var(--muted);
+        margin-bottom:4px;
+    }
+
+    .category-inner-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr)); /* 2x10 = 20 tiles per category */
+        gap:6px;
+    }
+
+    .tile{
+        border-radius:8px;
+        border:1px solid #e5e7eb;
+        background:var(--card);
+        padding:6px 8px;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        min-height:70px;
+        box-shadow:0 1px 3px rgba(15,23,42,0.04);
+        transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease, border-color .12s ease;
+        cursor:pointer;
+    }
+    .tile:hover{
+        transform:translateY(-2px);
+        box-shadow:0 8px 20px rgba(15,23,42,0.08);
+    }
+
+    .tile.up{
+        background:#dcfce7;
+        border-color:#22c55e;
+    }
+    .tile.degraded{
+        background:#fef9c3;
+        border-color:#eab308;
+    }
+    .tile.down{
+        background:#fee2e2;
+        border-color:#ef4444;
+    }
+
+    .tile-top{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:4px;
+    }
+    .tile-name{
+        font-size:11px;
+        font-weight:600;
+        color:#0f172a;
+        line-height:1.2;
+    }
+    .tile-id{
+        font-size:10px;
+        color:var(--muted);
+        text-transform:uppercase;
+        letter-spacing:0.04em;
+        white-space:nowrap;
+    }
+
+    .tile-bottom{
+        display:flex;
+        flex-direction:column;
+        margin-top:4px;
+        gap:2px;
+        font-size:10px;
+    }
+    .tile-status-text{
+        font-weight:600;
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+    }
+    .status-dot{
+        width:8px;
+        height:8px;
+        border-radius:999px;
+        background:#9ca3af;
+    }
+    .tile.up .status-dot{background:var(--success);}
+    .tile.degraded .status-dot{background:var(--warning);}
+    .tile.down .status-dot{background:var(--danger);}
+
+    .tile-meta{
+        color:var(--muted);
+        font-size:10px;
+    }
+
+    .legend{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        font-size:11px;
+        margin-bottom:10px;
+        color:var(--muted);
+    }
+    .legend-item{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        padding:4px 8px;
+        border-radius:999px;
+        background:#f3f4f6;
+    }
+    .legend-swatch{
+        width:10px;
+        height:10px;
+        border-radius:999px;
+    }
+    .legend-swatch.ok{background:#22c55e;}
+    .legend-swatch.warn{background:#eab308;}
+    .legend-swatch.err{background:#ef4444;}
+
+    .footer{
+        margin-top:16px;
+        font-size:12px;
+        text-align:center;
+        color:var(--muted);
+    }
+
+    /* MODAL / POPUP */
+    .modal-overlay{
+        position:fixed;
+        inset:0;
+        background:rgba(15,23,42,0.55);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        z-index:50;
+    }
+    .modal{
+        background:var(--card);
+        border-radius:16px;
+        box-shadow:0 20px 45px rgba(15,23,42,0.4);
+        max-width:780px;
+        width:96%;
+        padding:18px 20px 20px;
+        max-height:90vh;
+        overflow:auto;
+    }
+    .modal-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:8px;
+        margin-bottom:12px;
+    }
+    .modal-title{
+        font-size:16px;
+        font-weight:700;
+    }
+    .modal-subtitle{
+        font-size:12px;
+        color:#6b7280;
+    }
+    .modal-close{
+        border:none;
+        background:transparent;
+        cursor:pointer;
+        font-size:20px;
+        line-height:1;
+        padding:0 4px;
+        color:#6b7280;
+    }
+    .modal-close:hover{color:#111827;}
+
+    .modal-section-title{
+        margin-top:12px;
+        font-size:12px;
+        font-weight:600;
+        color:#0f172a;
+    }
+
+    .metric-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px;
+        margin-top:6px;
+    }
+    @media (max-width:700px){
+        .metric-grid{grid-template-columns:1fr;}
+    }
+
+    .modal-metric-card{
+        border-radius:10px;
+        border:1px solid #e5e7eb;
+        padding:8px 10px;
+        background:#f9fafb;
+        font-size:12px;
+    }
+    .modal-metric-label{
+        font-size:11px;
+        color:#6b7280;
+        margin-bottom:2px;
+    }
+    .modal-metric-value{
+        font-size:14px;
+        font-weight:600;
+    }
+    .modal-metric-foot{
+        font-size:11px;
+        color:#9ca3af;
+        margin-top:2px;
+    }
+
+    .modal-actions{
+        margin-top:12px;
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+    }
+    .btn{
+        border-radius:999px;
+        border:1px solid #d1d5db;
+        background:#f9fafb;
+        padding:6px 10px;
+        font-size:12px;
+        cursor:pointer;
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        transition:background .12s ease, transform .12s ease, box-shadow .12s ease;
+    }
+    .btn:hover{
+        background:#e5e7eb;
+        transform:translateY(-1px);
+        box-shadow:0 4px 10px rgba(15,23,42,0.12);
+    }
+    .btn.primary{
+        background:linear-gradient(90deg,#0f6ebf,#0b57a1);
+        color:#fff;
+        border:none;
+    }
+
+    .hidden{display:none;}
+
+    .modal-chart-wrapper{
+        margin-top:6px;
+        border-radius:10px;
+        border:1px solid #e5e7eb;
+        background:#f9fafb;
+        padding:8px;
+    }
+    .modal-chart-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        font-size:11px;
+        color:#6b7280;
+        margin-bottom:4px;
+    }
+    .modal-chart-legend{
+        display:flex;
+        gap:8px;
+    }
+    .modal-chart-legend span{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+    }
+    .chart-swatch{
+        width:10px;
+        height:3px;
+        border-radius:999px;
+        background:#0f6ebf;
+    }
+
+    /* AI INSIGHTS BOX (bottom) */
+    .ai-card{
+        margin-top:18px;
+        background:var(--card);
+        border-radius:14px;
+        box-shadow:var(--shadow);
+        padding:14px;
+    }
+    .ai-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:8px;
+    }
+    .ai-title{
+        font-weight:700;
+        font-size:14px;
+    }
+    .ai-pill{
+        font-size:11px;
+        padding:4px 8px;
+        border-radius:999px;
+        background:#eff6ff;
+        color:#1d4ed8;
+    }
+    .ai-body{
+        margin-top:8px;
+        font-size:12px;
+        color:#111827;
+    }
+    .ai-section-title{
+        font-size:12px;
+        font-weight:600;
+        margin-top:6px;
+        margin-bottom:2px;
+    }
+    .ai-list{
+        margin:0 0 4px;
+        padding-left:18px;
+        font-size:12px;
+        color:#374151;
+    }
+    .ai-list li{margin-bottom:3px;}
+
+    /* AI QUICK COLUMN (6th column, improved layout) */
+    .ai-quick-body{
+        font-size:11px;
+        color:#111827;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+    }
+    .ai-quick-section{
+        background:rgba(255,255,255,0.9);
+        border-radius:8px;
+        padding:6px 7px 5px;
+        box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    }
+    .ai-quick-title{
+        font-size:11px;
+        font-weight:600;
+        color:#111827;
+        margin-bottom:2px;
+    }
+    .ai-quick-line{
+        font-size:11px;
+        color:#111827;
+        margin-bottom:1px;
+    }
+    .ai-quick-note{
+        font-size:10px;
+        color:#4b5563;
+        margin-top:2px;
+    }
+</style>
+</head>
+<body>
+<div class="topbar">
+    <div class="brand">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="10" fill="#0f6ebf"/>
+            <path d="M12 32L24 16L36 32H12Z" fill="white"/>
+        </svg>
+        ValueMomentum — Operational Health Dashboard
+    </div>
+    <div class="top-actions">
+        <div>Auto-refresh: <strong id="refresh-interval-label">10s</strong></div>
+        <div>Last checked: <strong id="last-checked">Never</strong></div>
+    </div>
+</div>
+
+<main class="layout">
+    <div class="meta">
+        <div class="pill">Environment: <strong>Production</strong></div>
+        <div class="pill">Region: <strong>us-east-1</strong></div>
+        <div class="meta-right">
+            <span>Total tiles: <strong>100</strong></span>
+            <span>Unique APIs: <strong>Configurable per tile</strong></span>
+        </div>
+    </div>
+
+    <div class="tile-wrapper-card">
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-swatch ok"></span> Running (2xx &amp; fast)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch warn"></span> Not certain (slow / borderline)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch err"></span> Down (error / timeout)
+            </div>
+        </div>
+
+        <!-- 5 CATEGORY COLUMNS + 1 AI QUICK COLUMN -->
+        <div id="category-grid" class="category-grid">
+            <!-- JS injects columns -->
+        </div>
+    </div>
+
+    <!-- DETAILED AI INSIGHTS (bottom) -->
+    <section class="ai-card" id="ai-card">
+        <div class="ai-header">
+            <div class="ai-title">AI Operational Insights</div>
+            <div class="ai-pill" id="ai-risk-pill">Overall Risk: Low</div>
+        </div>
+        <div class="ai-body" id="ai-body">
+            Gathering metrics… insights will appear as traffic and errors evolve.
+        </div>
+    </section>
+
+    <div class="footer">
+        Backend services health and response status • ValueMomentum Operational Health Dashboard
+    </div>
+</main>
+
+<!-- MODAL / POPUP FOR TILE DETAILS -->
+<div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="modal-service-name">Service Name</div>
+                <div class="modal-subtitle" id="modal-service-id">Service ID</div>
+            </div>
+            <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-section-title">Health & Latency</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Current status</div>
+                <div class="modal-metric-value" id="modal-status">—</div>
+                <div class="modal-metric-foot">HTTP <span id="modal-http-code">—</span></div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Last response time</div>
+                <div class="modal-metric-value" id="modal-rt-last">—</div>
+                <div class="modal-metric-foot">Average: <span id="modal-rt-avg">—</span> • P95: <span id="modal-rt-p95">—</span></div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Time vs Response Time (last checks)</div>
+        <div class="modal-chart-wrapper">
+            <div class="modal-chart-header">
+                <span>Each point = last N health checks</span>
+                <div class="modal-chart-legend">
+                    <span><span class="chart-swatch"></span> Response time (ms)</span>
+                </div>
+            </div>
+            <svg id="modal-rt-chart" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+        </div>
+
+        <div class="modal-section-title">Resources</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">CPU usage</div>
+                <div class="modal-metric-value" id="modal-cpu">—</div>
+                <div class="modal-metric-foot">From /metrics if available</div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Memory usage</div>
+                <div class="modal-metric-value" id="modal-mem">—</div>
+                <div class="modal-metric-foot">From /metrics if available</div>
+            </div>
+        </div>
+
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Uptime</div>
+                <div class="modal-metric-value" id="modal-uptime">—</div>
+                <div class="modal-metric-foot">Reported by server (if exposed)</div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Approx. response rate</div>
+                <div class="modal-metric-value" id="modal-req-rate">—</div>
+                <div class="modal-metric-foot">Per dashboard polling, not absolute traffic</div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Error distribution</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Request counts</div>
+                <div class="modal-metric-value">
+                    Total: <span id="modal-total-req">0</span>
+                </div>
+                <div class="modal-metric-foot">
+                    2xx: <span id="modal-2xx">0</span> • 4xx: <span id="modal-4xx">0</span> • 5xx: <span id="modal-5xx">0</span>
+                </div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Error rate</div>
+                <div class="modal-metric-value" id="modal-error-rate">0%</div>
+                <div class="modal-metric-foot" id="modal-error-note">Includes 4xx and 5xx</div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Actions</div>
+        <div class="modal-actions">
+            <button class="btn primary" id="modal-btn-deep-check">Run Deep Health Check</button>
+            <button class="btn" id="modal-btn-logs">Request Cause Analysis</button>
+            <button class="btn" id="modal-btn-json">Knowledge Assistance</button>
+            <button class="btn" id="modal-btn-job">Automated Job Monitoring</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // -------- CONFIG --------
 
-// Base backend APIs (templates for default URLs)
+// Base backend APIs (defaults used in round-robin when a tile has no custom URL)
 const BASE_SERVICES = [
     {
-        id: 'PolicyCore',
         name: 'Policy Core',
         health: 'https://vm-service-policy-submission.onrender.com/policysubmission/health',
         metrics: 'https://vm-service-policy-submission.onrender.com/policysubmission/metrics'
     },
     {
-        id: 'PolicyEdge',
         name: 'Policy Edge',
         health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
         metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
     },
     {
-        id: 'ClaimsCore',
         name: 'Claims Core',
         health: 'https://vm-service-claims.onrender.com/health/check',
         metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
     },
     {
-        id: 'ClaimsReview',
         name: 'Claims Review',
         health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
         metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
     },
     {
-        id: 'FraudCheck',
         name: 'Fraud Check',
         health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
         metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
     }
 ];
 
+const TOTAL_TILES = 100;
 const REFRESH_INTERVAL = 10 * 1000; // 10s
 
 // 5 visual categories (columns with tiles)
 const CATEGORIES = [
-    { id:'policy',  title:'Policy Services',   subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
-    { id:'billing', title:'Billing Services',  subtitle:'Accounts, invoices, payments',      bg:'#e0f2fe' },
-    { id:'claims',  title:'Claims Services',   subtitle:'FNOL, fraud, settlement',          bg:'#e0f2fe' },
-    { id:'rating',  title:'Product & Filings', subtitle:'Rates, forms, pricing versions',   bg:'#e0f2fe' },
-    { id:'shared',  title:'Shared Services',   subtitle:'Enterprise & platform services',   bg:'#e0f2fe' }
+    { id:'policy',  title:'Policy Services',  subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
+    { id:'billing', title:'Billing Services', subtitle:'Accounts, invoices, payments',     bg:'#e0f2fe' },
+    { id:'claims',  title:'Claims Services',  subtitle:'FNOL, fraud, settlement',         bg:'#e0f2fe' },
+    { id:'rating',  title:'Product & Filings',subtitle:'Rates, forms, pricing versions',  bg:'#e0f2fe' },
+    { id:'shared',  title:'Shared Services',  subtitle:'Enterprise & platform services',  bg:'#e0f2fe' }
 ];
 
-// Map each visual category to ONE base service template
-const CATEGORY_BASE_SERVICE_MAP = {
-    policy:  'PolicyCore',
-    billing: 'PolicyEdge',
-    claims:  'ClaimsCore',
-    rating:  'ClaimsReview',
-    shared:  'FraudCheck'
+// Per-tile override URLs (edit here in future)
+// key = tileId ("tile-policy-1", "tile-claims-7", etc.)
+const TILE_ENDPOINTS = {
+    // Example:
+    // 'tile-policy-1': {
+    //     health: 'https://my-policy-rating-service/health',
+    //     metrics: 'https://my-policy-rating-service/metrics'
+    // }
 };
 
-// Your microservice names per domain (10 each)
+// Microservice names per domain (10 each, shortId = 1-10)
 const MICROSERVICES = {
     policy: [
         { name: 'Rating Service',                 shortId: '1' },
@@ -82,16 +709,16 @@ const MICROSERVICES = {
         { name: 'Reconciliation Service',         shortId: '10' }
     ],
     claims: [
-        { name: 'FNOL UI Screen',                   shortId: '1' },
-        { name: 'FNOL API Service',                 shortId: '2' },
-        { name: 'Claim Investigation Service',      shortId: '3' },
-        { name: 'Fraud Check Service',             shortId: '4' },
-        { name: 'Damage Estimation Service',        shortId: '5' },
-        { name: 'Coverage Validation Service',      shortId: '6' },
-        { name: 'Third-party Integration Service',  shortId: '7' },
-        { name: 'Claim Payments Service',           shortId: '8' },
-        { name: 'Subrogation Service',              shortId: '9' },
-        { name: 'Claim Settlement Service',         shortId: '10' }
+        { name: 'FNOL UI Screen',                 shortId: '1' },
+        { name: 'FNOL API Service',               shortId: '2' },
+        { name: 'Claim Investigation Service',    shortId: '3' },
+        { name: 'Fraud Check Service',            shortId: '4' },
+        { name: 'Damage Estimation Service',      shortId: '5' },
+        { name: 'Coverage Validation Service',    shortId: '6' },
+        { name: 'Third-party Integration Service',shortId: '7' },
+        { name: 'Claim Payments Service',         shortId: '8' },
+        { name: 'Subrogation Service',            shortId: '9' },
+        { name: 'Claim Settlement Service',       shortId: '10' }
     ],
     rating: [
         { name: 'Product Master Service',         shortId: '1' },
@@ -119,29 +746,9 @@ const MICROSERVICES = {
     ]
 };
 
-// Domain labels for AI grouping
-const DOMAIN_LABEL = {
-    policy:  'Policy',
-    billing: 'Billing',
-    claims:  'Claims',
-    rating:  'Product & Filings',
-    shared:  'Shared'
-};
-
-// Per-tile URL overrides (leave empty now; edit here later per tile)
-const TILE_URL_OVERRIDES = {
-    // Example (afterwards you can do):
-    // 'tile-policy-1': {
-    //     health: 'https://my-custom-policy-url/health',
-    //     metrics: 'https://my-custom-policy-url/metrics'
-    // }
-};
-
 // -------- STATE --------
-const tileMetaList = [];       // [{ tileId, serviceId }]
-const TILE_SERVICES = [];      // list of 100 tile service configs {id, name, health, metrics}
-const TILE_CATEGORY = {};      // serviceId -> category key ('policy', 'billing', ...)
-const serviceState = {};       // serviceId -> state
+const tileMetaList = []; // { tileId, serviceId }
+const serviceState = {}; // per-tile service state (100 entries)
 
 // -------- DOM ELEMENTS --------
 const categoryGridEl = document.getElementById('category-grid');
@@ -217,7 +824,10 @@ function computeP95(arr){
 }
 
 // -------- BUILD COLUMNS & TILES --------
+let globalTileCounter = 0; // 0..99, used to seed defaults from BASE_SERVICES
+
 (function buildCategorisedTiles(){
+    // 5 tile columns
     CATEGORIES.forEach((cat) => {
         const col = document.createElement('div');
         col.className = 'category-column';
@@ -232,34 +842,30 @@ function computeP95(arr){
         const innerGrid = col.querySelector('.category-inner-grid');
         const msList = MICROSERVICES[cat.id] || [];
 
-        const baseId = CATEGORY_BASE_SERVICE_MAP[cat.id];
-        const base = BASE_SERVICES.find(s => s.id === baseId) || BASE_SERVICES[0];
-
-        // 20 tiles per category
+        // 20 tiles per category (2 tiles per microservice name)
         for(let i = 0; i < 20; i++){
             const tileId = `tile-${cat.id}-${i+1}`;
-            const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:String(i+1) };
+            const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:'-' };
 
-            // allow per-tile URL override
-            const override = TILE_URL_OVERRIDES[tileId] || {};
-            const healthUrl = override.health || base.health;
-            const metricsUrl = override.metrics || base.metrics;
+            // Unique serviceId per tile (same string as tileId for simplicity)
+            const serviceId = tileId;
 
-            const tileServiceId = tileId; // unique per tile
+            // Pick default base endpoint (round-robin) and allow override
+            const baseSvc = BASE_SERVICES[globalTileCounter % BASE_SERVICES.length];
+            const override = TILE_ENDPOINTS[tileId];
+            const healthUrl = override?.health ?? baseSvc.health;
+            const metricsUrl = override?.metrics ?? baseSvc.metrics;
 
-            // create tile-specific service config
-            const svc = {
-                id: tileServiceId,
-                name: ms.name,
-                health: healthUrl,
-                metrics: metricsUrl
-            };
-            TILE_SERVICES.push(svc);
-            TILE_CATEGORY[tileServiceId] = cat.id;
-
-            // init state for this tile service
-            serviceState[tileServiceId] = {
-                info: svc,
+            // Initialise state for this tile-service
+            serviceState[serviceId] = {
+                info: {
+                    id: serviceId,
+                    name: ms.name,
+                    categoryKey: cat.id,
+                    categoryLabel: cat.title,
+                    health: healthUrl,
+                    metrics: metricsUrl
+                },
                 lastStatus: 'UNKNOWN',
                 lastStateClass: '',
                 lastHttpCode: '—',
@@ -281,7 +887,7 @@ function computeP95(arr){
             const tile = document.createElement('div');
             tile.className = 'tile';
             tile.id = tileId;
-            tile.dataset.serviceId = tileServiceId;
+            tile.dataset.serviceId = serviceId;
 
             tile.innerHTML = `
                 <div class="tile-top">
@@ -301,11 +907,13 @@ function computeP95(arr){
             `;
 
             tile.addEventListener('click', () => {
-                openModalForService(tileServiceId);
+                openModalForService(serviceId);
             });
 
             innerGrid.appendChild(tile);
-            tileMetaList.push({ tileId, serviceId: tileServiceId });
+            tileMetaList.push({ tileId, serviceId });
+
+            globalTileCounter++;
         }
 
         categoryGridEl.appendChild(col);
@@ -332,7 +940,7 @@ function computeP95(arr){
 })();
 
 // -------- FETCH & UPDATE --------
-async function fetchHealth(service){
+async function fetchHealth(info){
     const start = performance.now();
     let status = 'DOWN';
     let stateClass = 'down';
@@ -340,7 +948,7 @@ async function fetchHealth(service){
     let responseTime = null;
 
     try{
-        const res = await fetch(service.health, { method:'GET', cache:'no-store' });
+        const res = await fetch(info.health, { method:'GET', cache:'no-store' });
         const duration = Math.round(performance.now() - start);
         responseTime = duration;
         httpCode = res.status;
@@ -367,10 +975,10 @@ async function fetchHealth(service){
     return { status, stateClass, httpCode, responseTime };
 }
 
-async function fetchMetrics(service){
-    if(!service.metrics) return null;
+async function fetchMetrics(info){
+    if(!info.metrics) return null;
     try{
-        const res = await fetch(service.metrics, { method:'GET', cache:'no-store' });
+        const res = await fetch(info.metrics, { method:'GET', cache:'no-store' });
         if(!res.ok) return null;
         const json = await res.json();
         return json;
@@ -383,11 +991,13 @@ function updateStateForService(serviceId, healthRes, metricsRes){
     const s = serviceState[serviceId];
     if(!s) return;
 
+    const now = Date.now();
+
     s.lastStatus = healthRes.status;
     s.lastStateClass = healthRes.stateClass;
     s.lastHttpCode = healthRes.httpCode;
     s.lastResponseTime = healthRes.responseTime;
-    s.lastUpdated = Date.now();
+    s.lastUpdated = now;
 
     if(typeof healthRes.responseTime === 'number'){
         s.history.push(healthRes.responseTime);
@@ -449,14 +1059,16 @@ function applyResultToTiles(serviceId){
 }
 
 async function refreshAll(){
-    const checks = TILE_SERVICES.map(async svc=>{
+    const states = Object.values(serviceState);
+
+    const checks = states.map(async s=>{
         const [healthRes, metricsRes] = await Promise.all([
-            fetchHealth(svc),
-            fetchMetrics(svc)
+            fetchHealth(s.info),
+            fetchMetrics(s.info)
         ]);
-        updateStateForService(svc.id, healthRes, metricsRes);
-        applyResultToTiles(svc.id);
-        return serviceState[svc.id];
+        updateStateForService(s.info.id, healthRes, metricsRes);
+        applyResultToTiles(s.info.id);
+        return serviceState[s.info.id];
     });
 
     const all = await Promise.all(checks);
@@ -494,9 +1106,6 @@ function updateAIInsights(allStates){
         if(s.lastStatus === 'DOWN' || errRate > 0.15 || avg > 2000) level = 'HIGH';
         else if(errRate > 0.05 || avg > 1000) level = 'MEDIUM';
 
-        const catKey = TILE_CATEGORY[s.info.id];
-        const categoryLabel = DOMAIN_LABEL[catKey] || 'Other';
-
         const descriptor = {
             id: s.info.id,
             name: s.info.name,
@@ -505,7 +1114,7 @@ function updateAIInsights(allStates){
             status: s.lastStatus,
             totalRequests: s.totalRequests,
             errCount,
-            category: categoryLabel
+            category: s.info.categoryLabel || 'Other'
         };
 
         if(level === 'HIGH') highRisk.push(descriptor);
@@ -530,8 +1139,7 @@ function updateAIInsights(allStates){
 
     const categoryImpact = {};
     allStates.forEach(s => {
-        const catKey = TILE_CATEGORY[s.info.id];
-        const cat = DOMAIN_LABEL[catKey] || 'Other';
+        const cat = s.info.categoryLabel || 'Other';
         if(!categoryImpact[cat]) categoryImpact[cat] = { total:0, nonUp:0 };
         categoryImpact[cat].total++;
         if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
@@ -547,7 +1155,7 @@ function updateAIInsights(allStates){
     let html = '';
 
     html += `<div class="ai-section-title">Summary</div>`;
-    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> microservice tiles mapped to policy, billing, claims, product configuration and shared enterprise services.</p>`;
+    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> microservice tiles across policy, billing, claims, product configuration and shared enterprise domains.</p>`;
 
     html += `<div class="ai-section-title">Domain impact</div>`;
     html += `<ul class="ai-list">`;
@@ -561,9 +1169,9 @@ function updateAIInsights(allStates){
     });
     html += `</ul>`;
 
-    html += `<div class="ai-section-title">High-risk services (likely incidents)</div>`;
+    html += `<div class="ai-section-title">High-risk tiles (likely incidents)</div>`;
     if(!highRisk.length){
-        html += `<p>No services are currently classified as high risk.</p>`;
+        html += `<p>No tiles are currently classified as high risk.</p>`;
     } else {
         html += `<ul class="ai-list">`;
         highRisk.forEach(s => {
@@ -608,9 +1216,9 @@ function updateAIInsights(allStates){
 
     html += `<div class="ai-section-title">Short-term risk forecast (next 30–60 min)</div>`;
     if(forecastLabel === 'High'){
-        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, primarily in domains already showing non-UP status.</p>`;
+        html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, primarily in domains already showing non-UP tiles.</p>`;
     } else if(forecastLabel === 'Medium'){
-        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation for services shown as degraded or with elevated error rates.</p>`;
+        html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation for tiles shown as degraded or with elevated error rates.</p>`;
     } else {
         html += `<p>Signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic and batch processing windows.</p>`;
     }
@@ -695,9 +1303,9 @@ function updateAIQuick(allStates){
 
     let hint = 'Landscape stable.';
     if(down > 0){
-        hint = `${down} service(s) down — check incidents.`;
+        hint = `${down} tile(s) down — check incidents.`;
     } else if(degraded > 0){
-        hint = `${degraded} service(s) slow — watch latency.`;
+        hint = `${degraded} tile(s) slow — watch latency.`;
     } else if(worstErr && worstErr.rate > 0.1){
         hint = `Errors concentrated on ${worstErr.id}.`;
     }
@@ -842,7 +1450,7 @@ document.addEventListener('keydown', (e)=>{
     }
 });
 
-// modal buttons (existing behaviour)
+// modal buttons
 modalBtnLogs.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
     const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
@@ -868,3 +1476,5 @@ modalBtnJobMonitoring.addEventListener('click', ()=>{
 refreshAll();
 setInterval(refreshAll, REFRESH_INTERVAL);
 </script>
+</body>
+</html>

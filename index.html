@@ -622,8 +622,8 @@
         <div class="modal-actions">
             <button class="btn primary" id="modal-btn-deep-check">Run Deep Health Check</button>
             <button class="btn" id="modal-btn-logs">Request Cause Analysis</button>
-            <button class="btn" id="modal-btn-json">Knowledge Exploring</button>
-			<button class="btn" id="modal-btn-job">Jobs Health Status</button>
+            <button class="btn" id="modal-btn-json">Knowledge Assistance</button>
+			<button class="btn" id="modal-btn-job">Automated Job Monitoring</button>
 			
         </div>
     </div>
@@ -632,8 +632,8 @@
 <script>
 // -------- CONFIG --------
 
-// Backend APIs (same 5 actual services)
-const SERVICES = [
+// Base backend APIs (templates for default URLs)
+const BASE_SERVICES = [
     {
         id: 'PolicyCore',
         name: 'Policy Core',
@@ -649,7 +649,7 @@ const SERVICES = [
     {
         id: 'ClaimsCore',
         name: 'Claims Core',
-        health: 'https://vm-service-claims.onrender.com/claims/health',
+        health: 'https://vm-service-claims.onrender.com',
         metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
     },
     {
@@ -666,21 +666,19 @@ const SERVICES = [
     }
 ];
 
-const TOTAL_TILES = 100;
 const REFRESH_INTERVAL = 10 * 1000; // 10s
 
 // 5 visual categories (columns with tiles)
-// We'll map them to your domain lists
 const CATEGORIES = [
-    { id:'policy',  title:'Policy Services',  subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
-    { id:'billing', title:'Billing Services', subtitle:'Accounts, invoices, payments',     bg:'#e0f2fe' },
-    { id:'claims',  title:'Claims Services',  subtitle:'FNOL, fraud, settlement',         bg:'#e0f2fe' },
-    { id:'rating',  title:'Product & Filings',subtitle:'Rates, forms, pricing versions',  bg:'#e0f2fe' },
-    { id:'shared',  title:'Shared Services',  subtitle:'Enterprise & platform services',  bg:'#e0f2fe' }
+    { id:'policy',  title:'Policy Services',   subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
+    { id:'billing', title:'Billing Services',  subtitle:'Accounts, invoices, payments',      bg:'#e0f2fe' },
+    { id:'claims',  title:'Claims Services',   subtitle:'FNOL, fraud, settlement',          bg:'#e0f2fe' },
+    { id:'rating',  title:'Product & Filings', subtitle:'Rates, forms, pricing versions',   bg:'#e0f2fe' },
+    { id:'shared',  title:'Shared Services',   subtitle:'Enterprise & platform services',   bg:'#e0f2fe' }
 ];
 
-// Map each visual category to ONE backend API to ping
-const CATEGORY_SERVICE_MAP = {
+// Map each visual category to ONE base service template
+const CATEGORY_BASE_SERVICE_MAP = {
     policy:  'PolicyCore',
     billing: 'PolicyEdge',
     claims:  'ClaimsCore',
@@ -690,7 +688,6 @@ const CATEGORY_SERVICE_MAP = {
 
 // Your microservice names per domain (10 each)
 const MICROSERVICES = {
-    // 1. Policy
     policy: [
         { name: 'Rating Service',                 shortId: '1' },
         { name: 'Underwriting Rules Service',     shortId: '2' },
@@ -703,8 +700,6 @@ const MICROSERVICES = {
         { name: 'Policy Search Service',          shortId: '9' },
         { name: 'Product Configuration Service',  shortId: '10' }
     ],
-
-    // 2. Billing
     billing: [
         { name: 'Billing Account Service',        shortId: '1' },
         { name: 'Invoice Generation Service',     shortId: '2' },
@@ -717,22 +712,18 @@ const MICROSERVICES = {
         { name: 'Billing History Service',        shortId: '9' },
         { name: 'Reconciliation Service',         shortId: '10' }
     ],
-
-    // 3. Claims
     claims: [
-        { name: 'FNOL Service',                   shortId: '1' },
-        { name: 'Adjuster Assignment Service',    shortId: '2' },
-        { name: 'Claim Investigation Service',    shortId: '3' },
-        { name: 'Fraud Check Service',           shortId: '4' },
-        { name: 'Damage Estimation Service',      shortId: '5' },
-        { name: 'Coverage Validation Service',    shortId: '6' },
-        { name: 'Third-party Integration Service',shortId: '7' },
-        { name: 'Claim Payments Service',         shortId: '8' },
-        { name: 'Subrogation Service',            shortId: '9' },
-        { name: 'Claim Settlement Service',       shortId: '10' }
+        { name: 'FNOL UI Screen',                   shortId: '1' },
+        { name: 'FNOL Service',                 shortId: '2' },
+        { name: 'Fraud Check UI Screen',      shortId: '3' },
+        { name: 'Fraud Check Service',             shortId: '4' },
+        { name: 'Damage Estimation  Service',        shortId: '5' },
+        { name: 'Coverage Validation Service',      shortId: '6' },
+        { name: 'Third-party Integration Service',  shortId: '7' },
+        { name: 'Claim Payments Service',           shortId: '8' },
+        { name: 'Subrogation Service',              shortId: '9' },
+        { name: 'Claim Settlement Service',         shortId: '10' }
     ],
-
-    // 5. Product Configuration & Filings → used in "rating" column
     rating: [
         { name: 'Product Master Service',         shortId: '1' },
         { name: 'Coverage Catalogue Service',     shortId: '2' },
@@ -745,8 +736,6 @@ const MICROSERVICES = {
         { name: 'Channel Eligibility Service',    shortId: '9' },
         { name: 'Sandbox Simulation Service',     shortId: '10' }
     ],
-
-    // 7. Shared Enterprise Services → used in "shared" column
     shared: [
         { name: 'Identity Auth Service',          shortId: '1' },
         { name: 'Document Storage Service',       shortId: '2' },
@@ -761,40 +750,42 @@ const MICROSERVICES = {
     ]
 };
 
-// Map services to logical business category for AI bottom section
-const SERVICE_CATEGORY = {
-    PolicyCore:  'Policy',
-    PolicyEdge:  'Billing',
-    ClaimsCore:  'Claims',
-    ClaimsReview:'Product & Filings',
-    FraudCheck:  'Shared'
+// Domain labels for AI grouping
+const DOMAIN_LABEL = {
+    policy:  'Policy',
+    billing: 'Billing',
+    claims:  'Claims',
+    rating:  'Product & Filings',
+    shared:  'Shared'
+};
+
+// Per-tile URL overrides (leave empty now; edit here later per tile)
+const TILE_URL_OVERRIDES = {
+    // Example (afterwards you can do):
+    // 'tile-policy-1': {
+    //     health: 'https://my-custom-policy-url/health',
+    //     metrics: 'https://my-custom-policy-url/metrics'
+    // }
+	'tile-claims-2': {
+         health: 'https://vm-service-claims.onrender.com/health/check',
+         metrics: 'https://my-custom-policy-url/metrics'
+     },
+	 'tile-claims-4': {
+         health: 'https://vm-service-claims.onrender.com/claims/fetch',
+         metrics: 'https://my-custom-policy-url/metrics'
+     },
+	 'tile-claims-5': {
+         health: 'https://vm-service-claims.onrender.com/claims/fetch1',
+         metrics: 'https://my-custom-policy-url/metrics'
+     }
+	
 };
 
 // -------- STATE --------
-const tileMetaList = []; // { tileId, serviceId }
-const serviceState = {}; // per backend service aggregated state
-
-SERVICES.forEach(s=>{
-    serviceState[s.id] = {
-        info: s,
-        lastStatus: 'UNKNOWN',
-        lastStateClass: '',
-        lastHttpCode: '—',
-        lastResponseTime: null,
-        history: [],
-        avgResponseTime: null,
-        p95ResponseTime: null,
-        cpu: null,
-        mem: null,
-        uptime: null,
-        totalRequests: 0,
-        count2xx: 0,
-        count4xx: 0,
-        count5xx: 0,
-        lastMetricsJson: null,
-        lastUpdated: null
-    };
-});
+const tileMetaList = [];       // [{ tileId, serviceId }]
+const TILE_SERVICES = [];      // list of 100 tile service configs {id, name, health, metrics}
+const TILE_CATEGORY = {};      // serviceId -> category key ('policy', 'billing', ...)
+const serviceState = {};       // serviceId -> state
 
 // -------- DOM ELEMENTS --------
 const categoryGridEl = document.getElementById('category-grid');
@@ -871,7 +862,6 @@ function computeP95(arr){
 
 // -------- BUILD COLUMNS & TILES --------
 (function buildCategorisedTiles(){
-    // 5 tile columns
     CATEGORIES.forEach((cat) => {
         const col = document.createElement('div');
         col.className = 'category-column';
@@ -885,17 +875,57 @@ function computeP95(arr){
 
         const innerGrid = col.querySelector('.category-inner-grid');
         const msList = MICROSERVICES[cat.id] || [];
-        const backendServiceId = CATEGORY_SERVICE_MAP[cat.id] || SERVICES[0].id;
 
-        // 20 tiles per category (2 tiles per microservice name)
+        const baseId = CATEGORY_BASE_SERVICE_MAP[cat.id];
+        const base = BASE_SERVICES.find(s => s.id === baseId) || BASE_SERVICES[0];
+
+        // 20 tiles per category
         for(let i = 0; i < 20; i++){
             const tileId = `tile-${cat.id}-${i+1}`;
-            const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:'Svc' };
+            const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:String(i+1) };
+
+            // allow per-tile URL override
+            const override = TILE_URL_OVERRIDES[tileId] || {};
+            const healthUrl = override.health || base.health;
+            const metricsUrl = override.metrics || base.metrics;
+
+            const tileServiceId = tileId; // unique per tile
+
+            // create tile-specific service config
+            const svc = {
+                id: tileServiceId,
+                name: ms.name,
+                health: healthUrl,
+                metrics: metricsUrl
+            };
+            TILE_SERVICES.push(svc);
+            TILE_CATEGORY[tileServiceId] = cat.id;
+
+            // init state for this tile service
+            serviceState[tileServiceId] = {
+                info: svc,
+                lastStatus: 'UNKNOWN',
+                lastStateClass: '',
+                lastHttpCode: '—',
+                lastResponseTime: null,
+                history: [],
+                avgResponseTime: null,
+                p95ResponseTime: null,
+                cpu: null,
+                mem: null,
+                uptime: null,
+                totalRequests: 0,
+                count2xx: 0,
+                count4xx: 0,
+                count5xx: 0,
+                lastMetricsJson: null,
+                lastUpdated: null
+            };
 
             const tile = document.createElement('div');
             tile.className = 'tile';
             tile.id = tileId;
-            tile.dataset.serviceId = backendServiceId;
+            tile.dataset.serviceId = tileServiceId;
 
             tile.innerHTML = `
                 <div class="tile-top">
@@ -915,11 +945,11 @@ function computeP95(arr){
             `;
 
             tile.addEventListener('click', () => {
-                openModalForService(backendServiceId);
+                openModalForService(tileServiceId);
             });
 
             innerGrid.appendChild(tile);
-            tileMetaList.push({ tileId, serviceId: backendServiceId });
+            tileMetaList.push({ tileId, serviceId: tileServiceId });
         }
 
         categoryGridEl.appendChild(col);
@@ -945,8 +975,8 @@ function computeP95(arr){
     aiQuickBodyEl = aiCol.querySelector('#ai-quick-body');
 })();
 
-// -------- FETCH & UPDATE --------
-async function fetchHealth(service){
+// -------- FETCH & UPDATE ------------
+async function fetchHealth(info){
     const start = performance.now();
     let status = 'DOWN';
     let stateClass = 'down';
@@ -954,24 +984,26 @@ async function fetchHealth(service){
     let responseTime = null;
 
     try{
-        const res = await fetch(service.health, { method:'GET', cache:'no-store' });
+        const res = await fetch(info.health, { method:'GET', cache:'no-store' });
         const duration = Math.round(performance.now() - start);
         responseTime = duration;
         httpCode = res.status;
 
-        if(res.ok){
-            if(duration <= 800){
-                status = 'UP';
-                stateClass = 'up';
-            } else {
-                status = 'DEGRADED';
-                stateClass = 'degraded';
-            }
-        } else {
+        if (res.status >= 200 && res.status < 300) {
+            // ✅ Any 2xx = GREEN
+            status = 'UP';
+            stateClass = 'up';
+        } else if (res.status >= 400 || res.status === 0) {
+            // 5xx or network-style error → RED
             status = 'DOWN';
             stateClass = 'down';
+        } else {
+            // 3xx / 4xx → YELLOW (not certain / partial issues)
+            status = 'DEGRADED';
+            stateClass = 'degraded';
         }
     } catch(e){
+        // Network / CORS / timeout → RED
         status = 'DOWN';
         stateClass = 'down';
         httpCode = 'ERR';
@@ -980,6 +1012,7 @@ async function fetchHealth(service){
 
     return { status, stateClass, httpCode, responseTime };
 }
+
 
 async function fetchMetrics(service){
     if(!service.metrics) return null;
@@ -997,13 +1030,11 @@ function updateStateForService(serviceId, healthRes, metricsRes){
     const s = serviceState[serviceId];
     if(!s) return;
 
-    const now = Date.now();
-
     s.lastStatus = healthRes.status;
     s.lastStateClass = healthRes.stateClass;
     s.lastHttpCode = healthRes.httpCode;
     s.lastResponseTime = healthRes.responseTime;
-    s.lastUpdated = now;
+    s.lastUpdated = Date.now();
 
     if(typeof healthRes.responseTime === 'number'){
         s.history.push(healthRes.responseTime);
@@ -1065,7 +1096,7 @@ function applyResultToTiles(serviceId){
 }
 
 async function refreshAll(){
-    const checks = SERVICES.map(async svc=>{
+    const checks = TILE_SERVICES.map(async svc=>{
         const [healthRes, metricsRes] = await Promise.all([
             fetchHealth(svc),
             fetchMetrics(svc)
@@ -1110,6 +1141,9 @@ function updateAIInsights(allStates){
         if(s.lastStatus === 'DOWN' || errRate > 0.15 || avg > 2000) level = 'HIGH';
         else if(errRate > 0.05 || avg > 1000) level = 'MEDIUM';
 
+        const catKey = TILE_CATEGORY[s.info.id];
+        const categoryLabel = DOMAIN_LABEL[catKey] || 'Other';
+
         const descriptor = {
             id: s.info.id,
             name: s.info.name,
@@ -1118,7 +1152,7 @@ function updateAIInsights(allStates){
             status: s.lastStatus,
             totalRequests: s.totalRequests,
             errCount,
-            category: SERVICE_CATEGORY[s.info.id] || 'Other'
+            category: categoryLabel
         };
 
         if(level === 'HIGH') highRisk.push(descriptor);
@@ -1143,7 +1177,8 @@ function updateAIInsights(allStates){
 
     const categoryImpact = {};
     allStates.forEach(s => {
-        const cat = SERVICE_CATEGORY[s.info.id] || 'Other';
+        const catKey = TILE_CATEGORY[s.info.id];
+        const cat = DOMAIN_LABEL[catKey] || 'Other';
         if(!categoryImpact[cat]) categoryImpact[cat] = { total:0, nonUp:0 };
         categoryImpact[cat].total++;
         if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
@@ -1159,7 +1194,7 @@ function updateAIInsights(allStates){
     let html = '';
 
     html += `<div class="ai-section-title">Summary</div>`;
-    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> backend service clusters mapped to policy, billing, claims, product configuration and shared enterprise services.</p>`;
+    html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> microservice tiles mapped to policy, billing, claims, product configuration and shared enterprise services.</p>`;
 
     html += `<div class="ai-section-title">Domain impact</div>`;
     html += `<ul class="ai-list">`;
@@ -1231,7 +1266,7 @@ function updateAIInsights(allStates){
     const actions = [];
 
     if(highRisk.length || trendingErrors.length){
-        actions.push('Prioritise log and metric review for high-risk clusters (HTTP 5xx, timeouts, connection resets).');
+        actions.push('Prioritise log and metric review for high-risk tiles (HTTP 5xx, timeouts, connection resets).');
         actions.push('Verify downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
     }
     if(trendingSlow.length){
@@ -1341,7 +1376,7 @@ function updateAIQuick(allStates){
         <div class="ai-quick-section">
             <div class="ai-quick-title">AI Focus</div>
             <div class="ai-quick-line">${hint}</div>
-            <div class="ai-quick-note">Use this pane as a quick scan; click tiles to drill into a specific microservice cluster.</div>
+            <div class="ai-quick-note">Use this pane as a quick scan; click tiles to drill into a specific microservice.</div>
         </div>
     `;
 }
@@ -1454,31 +1489,32 @@ document.addEventListener('keydown', (e)=>{
     }
 });
 
-// modal buttons
+// modal buttons (existing behaviour)
 modalBtnLogs.addEventListener('click', ()=>{
-    if(!currentModalServiceId) return;
-	const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
-    window.open(url, '_blank');
-});
-modalBtnDeepCheck.addEventListener('click', ()=>{
-    if(!currentModalServiceId) return;
-	const url = 'http://20.172.162.208:8502?app=MyApp&env=prod';
-    window.open(url, '_blank');
-});
-modalBtnJson.addEventListener('click', ()=>{
-    if(!currentModalServiceId) return;
-    const s = serviceState[currentModalServiceId];
-    const json = s.lastMetricsJson ? JSON.stringify(s.lastMetricsJson, null, 2) : 'No /metrics payload captured yet.';
-    alert(json);
-});
-modalBtnJobMonitoring.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
     const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
     window.open(url, '_blank');
 });
+modalBtnDeepCheck.addEventListener('click', ()=>{
+    if(!currentModalServiceId) return;
+    const url = 'http://20.172.162.208:8502?app=MyApp&env=prod';
+    window.open(url, '_blank');
+});
+modalBtnJson.addEventListener('click', ()=>{
+    if(!currentModalServiceId) return;
+    const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=a0b68361-3c13-4c9a-b3c5-f9598f059b04&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
+    window.open(url, '_blank');
+});
+modalBtnJobMonitoring.addEventListener('click', ()=>{
+    if(!currentModalServiceId) return;
+    const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=14d0239d-fd42-47a8-842e-9b13597c167b&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
+    window.open(url, '_blank');
+});
+
 // -------- START LOOP --------
 refreshAll();
 setInterval(refreshAll, REFRESH_INTERVAL);
 </script>
+
 </body>
 </html>
