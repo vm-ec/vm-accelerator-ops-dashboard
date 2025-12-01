@@ -1497,7 +1497,7 @@ modalBtnLogs.addEventListener('click', ()=>{
 });
 modalBtnDeepCheck.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-    const url = 'http://20.172.162.208:8502?app=MyApp&env=prod';
+    const url = 'http://20.172.162.208:8502?app=Aorta&env=prod';
     window.open(url, '_blank');
 });
 modalBtnJson.addEventListener('click', ()=>{
