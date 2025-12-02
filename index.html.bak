@@ -621,7 +621,7 @@
         <div class="modal-section-title">Actions</div>
         <div class="modal-actions">
             <button class="btn primary" id="modal-btn-deep-check">Run Deep Health Check</button>
-            <button class="btn" id="modal-btn-logs">Request Cause Analysis</button>
+            <button class="btn" id="modal-btn-logs">Root Cause Analysis</button>
             <button class="btn" id="modal-btn-json">Knowledge Assistance</button>
 			<button class="btn" id="modal-btn-job">Automated Job Monitoring</button>
 			
@@ -690,7 +690,7 @@ const CATEGORY_BASE_SERVICE_MAP = {
 const MICROSERVICES = {
     policy: [
         { name: 'Rating Service',                 shortId: '1' },
-        { name: 'Underwriting Rules Service',     shortId: '2' },
+        { name: 'Policy Reconciliation Service',     shortId: '2' },
         { name: 'Quote Service',                  shortId: '3' },
         { name: 'Policy Issuance Service',        shortId: '4' },
         { name: 'Policy Lifecycle Service',       shortId: '5' },
@@ -762,10 +762,14 @@ const DOMAIN_LABEL = {
 // Per-tile URL overrides (leave empty now; edit here later per tile)
 const TILE_URL_OVERRIDES = {
     // Example (afterwards you can do):
-    // 'tile-policy-1': {
+    // 'tile-policy-2': {
     //     health: 'https://my-custom-policy-url/health',
     //     metrics: 'https://my-custom-policy-url/metrics'
     // }
+	'tile-policy-2': {
+         health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health1',
+         metrics: 'https://my-custom-policy-url/metrics'
+     },
 	'tile-claims-2': {
          health: 'https://vm-service-claims.onrender.com/health/check',
          metrics: 'https://my-custom-policy-url/metrics'
@@ -1497,7 +1501,7 @@ modalBtnLogs.addEventListener('click', ()=>{
 });
 modalBtnDeepCheck.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-    const url = 'http://20.172.162.208:8502?app=Aorta&env=prod';
+    const url = 'http://20.172.162.208:8502?app=Policy-Reconciliation&env=prod';
     window.open(url, '_blank');
 });
 modalBtnJson.addEventListener('click', ()=>{
