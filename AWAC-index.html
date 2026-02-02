@@ -717,7 +717,7 @@ const MICROSERVICES = {
         { name: 'FNOL Service',                 shortId: '2' },
         { name: 'Fraud Check UI Screen',      shortId: '3' },
         { name: 'Fraud Check Service',             shortId: '4' },
-        { name: 'Infinity Incidents Service',        shortId: '5' },
+        { name: 'Damage Estimation  Service',        shortId: '5' },
         { name: 'Coverage Validation Service',      shortId: '6' },
         { name: 'Third-party Integration Service',  shortId: '7' },
         { name: 'Claim Payments Service',           shortId: '8' },
@@ -1501,7 +1501,7 @@ modalBtnLogs.addEventListener('click', ()=>{
 });
 modalBtnDeepCheck.addEventListener('click', ()=>{
     if(!currentModalServiceId) return;
-	const url = 'https://enzymolytic-cristiano-wartier.ngrok-free.dev/?app=Infinity&env=prod';
+    const url = 'http://20.172.162.208:8502?app=Policy_Reconciliation&env=prod';
     window.open(url, '_blank');
 });
 modalBtnJson.addEventListener('click', ()=>{
