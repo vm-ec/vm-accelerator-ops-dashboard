@@ -637,13 +637,13 @@ const BASE_SERVICES = [
     {
         id: 'PolicyCore',
         name: 'Policy Core',
-        health: 'https://vm-service-policy-submission.onrender.com/fnol/health',
+        health: 'https://vm-service-claims.onrender.com/claims/fetch',
         metrics: 'https://vm-service-policy-submission.onrender.com/fnol/metrics'
     },
     {
         id: 'PolicyEdge',
         name: 'Policy Edge',
-        health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
+        health: 'https://vm-service-claims.onrender.com/claims/fetch',
         metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
     },
     {
@@ -655,13 +655,13 @@ const BASE_SERVICES = [
     {
         id: 'ClaimsReview',
         name: 'Claims Review',
-        health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
+        health: 'https://vm-service-claims.onrender.com/claims/fetch',
         metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
     },
     {
         id: 'FraudCheck',
         name: 'Fraud Check',
-        health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
+        health: 'https://vm-service-claims.onrender.com/claims/fetch',
         metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
     }
 ];
